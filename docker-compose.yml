@@ -1,0 +1,40 @@
+name: giftbuddy
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-giftbuddy}
+      MYSQL_USER: ${DB_USERNAME:-giftbuddy}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-giftbuddy}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-giftbuddy_root}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - ./docker-data/mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-giftbuddy_root}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - ./docker-data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    restart: unless-stopped
+    ports:
+      - "${MAILHOG_SMTP_PORT:-1025}:1025" # SMTP — point apps/api's email config here in dev
+      - "${MAILHOG_UI_PORT:-8025}:8025" # Web UI — view caught emails at http://localhost:8025
