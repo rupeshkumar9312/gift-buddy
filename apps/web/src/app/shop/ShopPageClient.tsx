@@ -5,14 +5,20 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { LayoutGrid, List, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
-import { categories, products } from "@/lib/data";
+import type { Category, Product } from "@/lib/types";
 import { ProductCard } from "@/components/ProductCard";
 import { StarRating } from "@/components/StarRating";
 import { useCart } from "@/context/CartContext";
 
 type SortKey = "featured" | "price-asc" | "price-desc" | "name";
 
-export function ShopPageClient() {
+export function ShopPageClient({
+  categories,
+  products,
+}: {
+  categories: Category[];
+  products: Product[];
+}) {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("category");
 
@@ -58,7 +64,7 @@ export function ShopPageClient() {
     });
 
     return list;
-  }, [selectedCategories, minRating, maxPrice, sortBy]);
+  }, [products, selectedCategories, minRating, maxPrice, sortBy]);
 
   const activeFilterCount = selectedCategories.length + (minRating > 0 ? 1 : 0) + (maxPrice < 200 ? 1 : 0);
 

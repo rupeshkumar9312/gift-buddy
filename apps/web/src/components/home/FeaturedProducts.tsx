@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { featuredProducts } from "@/lib/data";
+import { getFeaturedProducts } from "@/lib/api";
 import { ProductCard } from "@/components/ProductCard";
 import { SectionHeading } from "@/components/SectionHeading";
 
-export function FeaturedProducts() {
+export async function FeaturedProducts() {
+  const featuredProducts = await getFeaturedProducts();
+
   return (
     <section className="container-page py-16">
       <SectionHeading eyebrow="Feature Items" title="Top Holiday Gift Ideas" />
