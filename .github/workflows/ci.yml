@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  checks:
+    name: Lint, typecheck, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --workspaces --if-present
+
+      - name: Typecheck
+        run: npm run typecheck --workspaces --if-present
+
+      - name: Build
+        run: npm run build --workspaces --if-present
+
+  api-integration:
+    name: API tests & migration dry-run
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: giftbuddy_ci
+          MYSQL_USER: giftbuddy
+          MYSQL_PASSWORD: giftbuddy
+          MYSQL_ROOT_PASSWORD: giftbuddy_root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -pgiftbuddy_root"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      NODE_ENV: test
+      PORT: 3001
+      CORS_ORIGINS: http://localhost:3000,http://localhost:3002
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USERNAME: giftbuddy
+      DB_PASSWORD: giftbuddy
+      DB_DATABASE: giftbuddy_ci
+      JWT_ACCESS_SECRET: ci-access-secret
+      JWT_REFRESH_SECRET: ci-refresh-secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Wait for MySQL
+        run: |
+          for i in $(seq 1 20); do
+            mysqladmin ping -h 127.0.0.1 -u root -pgiftbuddy_root --silent && break
+            sleep 3
+          done
+
+      - name: Run migrations (dry-run against a fresh database)
+        run: npm run migration:run -w @giftbuddy/api
+
+      - name: Unit tests
+        run: npm run test -w @giftbuddy/api
+
+      - name: E2E tests
+        run: npm run test:e2e -w @giftbuddy/api
