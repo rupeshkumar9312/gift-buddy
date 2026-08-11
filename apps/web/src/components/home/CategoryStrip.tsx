@@ -1,9 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { categories } from "@/lib/data";
+import { getCategories } from "@/lib/api";
 import { SectionHeading } from "@/components/SectionHeading";
 
-export function CategoryStrip() {
+export async function CategoryStrip() {
+  const categories = await getCategories();
+
   return (
     <section className="container-page py-16">
       <SectionHeading eyebrow="Browse" title="Shop by Category" />
