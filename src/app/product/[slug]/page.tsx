@@ -1,0 +1,50 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getProductBySlug, getRelatedProducts, products } from "@/lib/data";
+import { PageBanner } from "@/components/PageBanner";
+import { ProductCard } from "@/components/ProductCard";
+import { SectionHeading } from "@/components/SectionHeading";
+import { ProductDetailClient } from "./ProductDetailClient";
+
+export function generateStaticParams() {
+  return products.map((p) => ({ slug: p.slug }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const product = getProductBySlug(slug);
+  return { title: product ? `${product.name} — GiftBuddy` : "Product — GiftBuddy" };
+}
+
+export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const product = getProductBySlug(slug);
+  if (!product) notFound();
+
+  const related = getRelatedProducts(product);
+
+  return (
+    <>
+      <PageBanner
+        title={product.name}
+        crumbs={[{ label: "Home", href: "/" }, { label: "Shop", href: "/shop" }, { label: product.name }]}
+      />
+      <ProductDetailClient product={product} />
+
+      {related.length > 0 && (
+        <section className="container-page border-t border-line py-16">
+          <SectionHeading eyebrow="You May Also Like" title="Related Gifts" />
+          <div className="mt-10 grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-4">
+            {related.map((p) => (
+              <ProductCard key={p.slug} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
+    </>
+  );
+}

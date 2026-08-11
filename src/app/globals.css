@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fdfbf8;
+  --foreground: #1a1a1a;
+
+  --color-primary: #be7374;
+  --color-primary-dark: #a35c5d;
+  --color-secondary: #fed2cc;
+  --color-cream: #f6ede7;
+  --color-ink: #1a1a1a;
+  --color-muted: #767676;
+  --color-line: #ece3dc;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-jost);
+  --font-script: var(--font-sacramento);
+
+  --color-primary: var(--color-primary);
+  --color-primary-dark: var(--color-primary-dark);
+  --color-secondary: var(--color-secondary);
+  --color-cream: var(--color-cream);
+  --color-ink: var(--color-ink);
+  --color-muted: var(--color-muted);
+  --color-line: var(--color-line);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-jost), sans-serif;
+}
+
+.font-script {
+  font-family: var(--font-sacramento), cursive;
+}
+
+.container-page {
+  max-width: 1320px;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .container-page {
+    padding-inline: 2rem;
+  }
+}
+
+.tag-heading {
+  letter-spacing: 0.02em;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+::selection {
+  background: var(--color-secondary);
+  color: var(--color-ink);
+}
