@@ -53,6 +53,16 @@ class EnvironmentVariables {
   @IsNotEmpty()
   JWT_REFRESH_SECRET: string;
 
+  // Separate signing secrets from the customer JWTs — an admin token must
+  // never be accepted on a customer route or vice versa.
+  @IsString()
+  @IsNotEmpty()
+  ADMIN_JWT_ACCESS_SECRET: string;
+
+  @IsString()
+  @IsNotEmpty()
+  ADMIN_JWT_REFRESH_SECRET: string;
+
   // Optional: when unset, PaymentsService falls back to a local dev PaymentIntent
   // simulator so checkout still works end to end without a real Stripe account.
   @IsString()

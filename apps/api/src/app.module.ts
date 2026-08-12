@@ -12,6 +12,11 @@ import { CartModule } from './cart/cart.module';
 import { ShippingModule } from './shipping/shipping.module';
 import { CheckoutModule } from './checkout/checkout.module';
 import { OrdersModule } from './orders/orders.module';
+import { AdminAuthModule } from './admin/auth/admin-auth.module';
+import { AdminDashboardModule } from './admin/dashboard/admin-dashboard.module';
+import { AdminProductsModule } from './admin/products/admin-products.module';
+import { AdminCategoriesModule } from './admin/categories/admin-categories.module';
+import { AdminOrdersModule } from './admin/orders/admin-orders.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -33,6 +38,11 @@ import { AppService } from './app.service';
     ShippingModule,
     CheckoutModule,
     OrdersModule,
+    AdminAuthModule,
+    AdminDashboardModule,
+    AdminProductsModule,
+    AdminCategoriesModule,
+    AdminOrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

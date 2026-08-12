@@ -39,4 +39,26 @@ export class MailService {
       );
     }
   }
+
+  async sendOrderStatusUpdate(params: {
+    to: string;
+    orderNumber: string;
+    status: string;
+  }): Promise<void> {
+    const label = params.status.replace(/_/g, ' ');
+    try {
+      await this.transporter.sendMail({
+        from: this.from,
+        to: params.to,
+        subject: `Your GiftBuddy order ${params.orderNumber} is now ${label}`,
+        text: `Order ${params.orderNumber} has been updated to: ${label}.`,
+        html: `<p>Order <strong>${params.orderNumber}</strong> has been updated to: <strong>${label}</strong>.</p>`,
+      });
+    } catch (error) {
+      // Best-effort, same rationale as sendOrderConfirmation above.
+      this.logger.error(
+        `Failed to send order status update email: ${String(error)}`,
+      );
+    }
+  }
 }

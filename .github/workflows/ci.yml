@@ -67,6 +67,8 @@ jobs:
       DB_DATABASE: giftbuddy_ci
       JWT_ACCESS_SECRET: ci-access-secret
       JWT_REFRESH_SECRET: ci-refresh-secret
+      ADMIN_JWT_ACCESS_SECRET: ci-admin-access-secret
+      ADMIN_JWT_REFRESH_SECRET: ci-admin-refresh-secret
 
     steps:
       - uses: actions/checkout@v4

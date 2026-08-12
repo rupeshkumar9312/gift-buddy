@@ -19,6 +19,16 @@ export default () => ({
     refreshTtlSeconds: 30 * 24 * 60 * 60,
     refreshTtlMs: 30 * 24 * 60 * 60 * 1000,
   },
+  adminJwt: {
+    // Audience claim keeps an admin token from being replayed on customer
+    // routes (and vice versa) even if a secret were ever shared by mistake.
+    audience: 'giftbuddy-admin',
+    accessSecret: process.env.ADMIN_JWT_ACCESS_SECRET ?? '',
+    accessTtlSeconds: 60 * 60,
+    refreshSecret: process.env.ADMIN_JWT_REFRESH_SECRET ?? '',
+    refreshTtlSeconds: 7 * 24 * 60 * 60,
+    refreshTtlMs: 7 * 24 * 60 * 60 * 1000,
+  },
   cart: {
     // Guest cart identity cookie — mirrors the refresh token cookie pattern.
     cookieTtlMs: 30 * 24 * 60 * 60 * 1000,
