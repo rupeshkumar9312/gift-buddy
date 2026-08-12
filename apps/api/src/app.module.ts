@@ -8,6 +8,10 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CategoriesModule } from './categories/categories.module';
 import { ProductsModule } from './products/products.module';
+import { CartModule } from './cart/cart.module';
+import { ShippingModule } from './shipping/shipping.module';
+import { CheckoutModule } from './checkout/checkout.module';
+import { OrdersModule } from './orders/orders.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -25,6 +29,10 @@ import { AppService } from './app.service';
     UsersModule,
     CategoriesModule,
     ProductsModule,
+    CartModule,
+    ShippingModule,
+    CheckoutModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

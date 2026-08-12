@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
+import { CartService } from '../cart/cart.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { toPublicUser } from './auth.mapper';
@@ -20,9 +21,10 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
+    private readonly cartService: CartService,
   ) {}
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto, guestCartToken?: string) {
     const existing = await this.usersService.findByEmail(dto.email);
     if (existing) {
       throw new ConflictException('An account with this email already exists');
@@ -36,10 +38,14 @@ export class AuthService {
       lastName: dto.lastName,
     });
 
+    if (guestCartToken) {
+      await this.cartService.mergeGuestCartIntoUser(user.id, guestCartToken);
+    }
+
     return this.issueSession(user);
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, guestCartToken?: string) {
     const user = await this.usersService.findByEmailWithSecrets(dto.email);
     if (!user) {
       throw new UnauthorizedException('Incorrect email or password');
@@ -51,6 +57,10 @@ export class AuthService {
     );
     if (!passwordMatches) {
       throw new UnauthorizedException('Incorrect email or password');
+    }
+
+    if (guestCartToken) {
+      await this.cartService.mergeGuestCartIntoUser(user.id, guestCartToken);
     }
 
     return this.issueSession(user);

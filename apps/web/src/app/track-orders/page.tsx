@@ -1,9 +1,42 @@
 "use client";
 
+import { useState } from "react";
+import Image from "next/image";
 import { Package } from "lucide-react";
 import { PageBanner } from "@/components/PageBanner";
+import { trackOrder, type OrderDetail } from "@/lib/api";
+
+const STATUS_LABEL: Record<string, string> = {
+  pending_payment: "Pending Payment",
+  paid: "Paid",
+  fulfilled: "Fulfilled",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  refunded: "Refunded",
+};
 
 export default function TrackOrdersPage() {
+  const [orderNumber, setOrderNumber] = useState("");
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [order, setOrder] = useState<OrderDetail | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    setOrder(null);
+    try {
+      const result = await trackOrder(orderNumber.trim(), email.trim());
+      setOrder(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "We couldn't find that order.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <>
       <PageBanner title="Track Your Order" crumbs={[{ label: "Home", href: "/" }, { label: "Track Orders" }]} />
@@ -18,12 +51,14 @@ export default function TrackOrdersPage() {
             checkout below.
           </p>
 
-          <form className="mt-8 flex flex-col gap-4 text-left" onSubmit={(e) => e.preventDefault()}>
+          <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4 text-left">
             <div>
               <label className="mb-1.5 block text-sm text-muted">Order ID</label>
               <input
                 required
-                placeholder="e.g. GFY-10234"
+                placeholder="e.g. GB-20260812-1A2B3C4D"
+                value={orderNumber}
+                onChange={(e) => setOrderNumber(e.target.value)}
                 className="w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
             </div>
@@ -33,16 +68,57 @@ export default function TrackOrdersPage() {
                 required
                 type="email"
                 placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
             </div>
+            {error && (
+              <p className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm text-primary">
+                {error}
+              </p>
+            )}
             <button
               type="submit"
-              className="mt-2 rounded-full bg-primary py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark"
+              disabled={submitting}
+              className="mt-2 rounded-full bg-primary py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Track Order
+              {submitting ? "Searching…" : "Track Order"}
             </button>
           </form>
+
+          {order && (
+            <div className="mt-8 rounded-2xl border border-line bg-white p-6 text-left text-sm">
+              <div className="flex items-center justify-between border-b border-line pb-3">
+                <span className="font-medium text-ink">{order.orderNumber}</span>
+                <span className="rounded-full bg-cream px-3 py-1 text-xs font-medium uppercase tracking-wide text-primary">
+                  {STATUS_LABEL[order.status] ?? order.status}
+                </span>
+              </div>
+              <ul className="mt-3 flex flex-col gap-3">
+                {order.items.map((item) => (
+                  <li key={item.sku} className="flex items-center gap-3">
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-cream">
+                      {item.productImage && (
+                        <Image src={item.productImage} alt={item.productName} fill className="object-cover" sizes="48px" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-ink">{item.productName}</p>
+                      <p className="text-xs text-muted">Qty {item.quantity}</p>
+                    </div>
+                    <span className="text-ink">${item.lineTotal.toFixed(2)}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-3 flex justify-between border-t border-line pt-3 font-semibold">
+                <span>Total</span>
+                <span>
+                  ${order.total.toFixed(2)} {order.currency.toUpperCase()}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>

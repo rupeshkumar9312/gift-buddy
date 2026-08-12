@@ -3,6 +3,7 @@ import { Category } from '../categories/entities/category.entity';
 import { MediaAsset } from '../media/entities/media-asset.entity';
 import { Product } from '../products/entities/product.entity';
 import { ProductImage } from '../products/entities/product-image.entity';
+import { ShippingMethod } from '../shipping/entities/shipping-method.entity';
 import { seedCategories, seedProducts } from './seed-data';
 
 const OLD_CREATED_AT = daysAgo(60);
@@ -24,6 +25,7 @@ async function seed() {
     'products',
     'categories',
     'media_assets',
+    'shipping_methods',
   ]) {
     await dataSource.query(`TRUNCATE TABLE \`${table}\``);
   }
@@ -96,6 +98,17 @@ async function seed() {
       );
     }
   }
+
+  console.log('Seeding shipping methods...');
+  const shippingRepo = dataSource.getRepository(ShippingMethod);
+  await shippingRepo.save(
+    shippingRepo.create({
+      name: 'Standard Shipping',
+      price: '8.00',
+      freeOverAmount: '99.00',
+      sortOrder: 0,
+    }),
+  );
 
   console.log('Seed complete.');
   await dataSource.destroy();

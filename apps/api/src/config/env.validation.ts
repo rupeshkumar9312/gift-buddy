@@ -52,6 +52,32 @@ class EnvironmentVariables {
   @IsString()
   @IsNotEmpty()
   JWT_REFRESH_SECRET: string;
+
+  // Optional: when unset, PaymentsService falls back to a local dev PaymentIntent
+  // simulator so checkout still works end to end without a real Stripe account.
+  @IsString()
+  @IsOptional()
+  STRIPE_SECRET_KEY: string = '';
+
+  @IsString()
+  @IsOptional()
+  STRIPE_WEBHOOK_SECRET: string = 'dev-webhook-secret-change-me';
+
+  @IsString()
+  @IsOptional()
+  STRIPE_PUBLISHABLE_KEY: string = '';
+
+  @IsString()
+  @IsOptional()
+  SMTP_HOST: string = 'localhost';
+
+  @IsInt()
+  @IsOptional()
+  SMTP_PORT: number = 1025;
+
+  @IsString()
+  @IsOptional()
+  MAIL_FROM: string = 'GiftBuddy <orders@giftbuddy.test>';
 }
 
 export function validate(config: Record<string, unknown>) {

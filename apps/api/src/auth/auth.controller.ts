@@ -18,9 +18,11 @@ import {
   CurrentUser,
   type CurrentUserPayload,
 } from './decorators/current-user.decorator';
+import { CART_COOKIE } from '../cart/cart.controller';
 
 const REFRESH_COOKIE = 'refresh_token';
 const REFRESH_COOKIE_PATH = '/api/v1/auth';
+const CART_COOKIE_PATH = '/api/v1';
 
 @Controller('auth')
 export class AuthController {
@@ -32,11 +34,18 @@ export class AuthController {
   @Post('register')
   async register(
     @Body() dto: RegisterDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { user, accessToken, refreshToken } =
-      await this.authService.register(dto);
+    const cookies = req.cookies as Record<string, string | undefined>;
+    const { user, accessToken, refreshToken } = await this.authService.register(
+      dto,
+      cookies?.[CART_COOKIE],
+    );
     this.setRefreshCookie(res, refreshToken);
+    if (cookies?.[CART_COOKIE]) {
+      res.clearCookie(CART_COOKIE, { path: CART_COOKIE_PATH });
+    }
     return { user, accessToken };
   }
 
@@ -44,11 +53,18 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() dto: LoginDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { user, accessToken, refreshToken } =
-      await this.authService.login(dto);
+    const cookies = req.cookies as Record<string, string | undefined>;
+    const { user, accessToken, refreshToken } = await this.authService.login(
+      dto,
+      cookies?.[CART_COOKIE],
+    );
     this.setRefreshCookie(res, refreshToken);
+    if (cookies?.[CART_COOKIE]) {
+      res.clearCookie(CART_COOKIE, { path: CART_COOKIE_PATH });
+    }
     return { user, accessToken };
   }
 
