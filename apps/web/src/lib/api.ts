@@ -153,6 +153,9 @@ export type Cart = {
   items: CartItem[];
   subtotal: number;
   itemCount: number;
+  couponCode: string | null;
+  discountTotal: number;
+  total: number;
 };
 
 export async function getCart(): Promise<Cart> {
@@ -289,5 +292,152 @@ export async function trackOrder(orderNumber: string, email: string): Promise<Or
   return apiFetch<OrderDetail>("/orders/track", {
     method: "POST",
     body: JSON.stringify({ orderNumber, email }),
+  });
+}
+
+// ---- Coupons (cart) ----
+
+export async function applyCoupon(code: string): Promise<Cart> {
+  return apiFetch<Cart>("/cart/coupon", {
+    method: "POST",
+    body: JSON.stringify({ code }),
+  });
+}
+
+export async function removeCoupon(): Promise<Cart> {
+  return apiFetch<Cart>("/cart/coupon", { method: "DELETE" });
+}
+
+// ---- Reviews ----
+
+export type Review = {
+  id: number;
+  rating: number;
+  title: string;
+  body: string;
+  authorName: string;
+  createdAt: string;
+};
+
+export type FeaturedReview = Review & {
+  productName: string;
+  productSlug: string;
+};
+
+export async function getProductReviews(
+  slug: string,
+  page = 1
+): Promise<Paginated<Review>> {
+  return apiFetch<Paginated<Review>>(`/products/${slug}/reviews?page=${page}`);
+}
+
+export async function getFeaturedReviews(limit = 6): Promise<FeaturedReview[]> {
+  return apiFetch<FeaturedReview[]>(`/reviews/featured?limit=${limit}`);
+}
+
+export async function submitReview(
+  slug: string,
+  accessToken: string,
+  input: { rating: number; title: string; body: string }
+): Promise<Review> {
+  return apiFetch<Review>(`/products/${slug}/reviews`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(input),
+  });
+}
+
+// ---- Wishlist ----
+
+export type WishlistItem = {
+  productId: number;
+  slug: string;
+  name: string;
+  image: string | null;
+  price: number;
+  salePrice: number | null;
+  inStock: boolean;
+  addedAt: string;
+};
+
+export async function getWishlist(accessToken: string): Promise<WishlistItem[]> {
+  return apiFetch<WishlistItem[]>("/wishlist", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export async function addWishlistItem(
+  accessToken: string,
+  productId: number
+): Promise<WishlistItem[]> {
+  return apiFetch<WishlistItem[]>(`/wishlist/items/${productId}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export async function removeWishlistItem(
+  accessToken: string,
+  productId: number
+): Promise<WishlistItem[]> {
+  return apiFetch<WishlistItem[]>(`/wishlist/items/${productId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+// ---- Blog ----
+
+export type BlogPostSummary = {
+  slug: string;
+  title: string;
+  excerpt: string;
+  coverImage: string | null;
+  authorName: string;
+  publishedAt: string | null;
+};
+
+export type BlogPostDetail = BlogPostSummary & { content: string };
+
+export async function getBlogPosts(): Promise<BlogPostSummary[]> {
+  const result = await apiFetch<Paginated<BlogPostSummary>>("/blog?limit=50");
+  return result.data;
+}
+
+export async function getBlogPost(slug: string): Promise<BlogPostDetail | null> {
+  try {
+    return await apiFetch<BlogPostDetail>(`/blog/${slug}`);
+  } catch {
+    return null;
+  }
+}
+
+// ---- FAQs ----
+
+export type FaqItem = { id: number; question: string; answer: string };
+export type GroupedFaqs = { shipping: FaqItem[]; returns: FaqItem[]; orders: FaqItem[] };
+
+export async function getFaqs(): Promise<GroupedFaqs> {
+  return apiFetch<GroupedFaqs>("/faqs");
+}
+
+// ---- Contact & newsletter ----
+
+export async function submitContact(input: {
+  name: string;
+  email: string;
+  subject?: string;
+  message: string;
+}): Promise<{ received: true }> {
+  return apiFetch<{ received: true }>("/contact", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function subscribeNewsletter(email: string): Promise<{ subscribed: true }> {
+  return apiFetch<{ subscribed: true }>("/newsletter", {
+    method: "POST",
+    body: JSON.stringify({ email }),
   });
 }

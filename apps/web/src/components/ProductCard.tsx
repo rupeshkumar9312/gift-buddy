@@ -21,7 +21,7 @@ const badgeLabel: Record<NonNullable<Product["badge"]>, string> = {
 
 export function ProductCard({ product }: { product: Product }) {
   const { addToCart, toggleWishlist, isWishlisted } = useCart();
-  const wishlisted = isWishlisted(product.slug);
+  const wishlisted = isWishlisted(product.id);
 
   return (
     <div className="group relative flex flex-col">

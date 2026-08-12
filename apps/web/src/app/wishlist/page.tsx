@@ -5,15 +5,25 @@ import { Heart } from "lucide-react";
 import { PageBanner } from "@/components/PageBanner";
 import { ProductCard } from "@/components/ProductCard";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 export default function WishlistPage() {
   const { wishlist } = useCart();
+  const { user } = useAuth();
 
   return (
     <>
       <PageBanner title="Wishlist" crumbs={[{ label: "Home", href: "/" }, { label: "Wishlist" }]} />
 
       <div className="container-page py-14">
+        {!user && wishlist.length > 0 && (
+          <p className="mb-8 rounded-xl bg-cream px-4 py-3 text-sm text-muted">
+            <Link href="/account" className="font-medium text-primary underline underline-offset-4">
+              Sign in
+            </Link>{" "}
+            to save your wishlist across visits.
+          </p>
+        )}
         {wishlist.length === 0 ? (
           <div className="flex flex-col items-center gap-5 py-16 text-center">
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-cream text-primary">

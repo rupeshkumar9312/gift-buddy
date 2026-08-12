@@ -46,7 +46,7 @@ const EMPTY_FORM: FormState = {
 };
 
 export default function CheckoutPage() {
-  const { lines, subtotal, refreshCart } = useCart();
+  const { lines, subtotal, discountTotal, couponCode, refreshCart } = useCart();
   const { user } = useAuth();
   const router = useRouter();
 
@@ -85,7 +85,7 @@ export default function CheckoutPage() {
       ? 0
       : selectedShipping.price
     : 0;
-  const estimatedTotal = subtotal + shippingCost;
+  const estimatedTotal = Math.max(0, subtotal + shippingCost - discountTotal);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -360,6 +360,12 @@ export default function CheckoutPage() {
                 <span>Shipping</span>
                 <span className="text-ink">{shippingCost === 0 ? "Free" : `$${shippingCost.toFixed(2)}`}</span>
               </div>
+              {discountTotal > 0 && (
+                <div className="flex justify-between text-muted">
+                  <span>Discount{couponCode ? ` (${couponCode})` : ""}</span>
+                  <span className="text-primary">-${discountTotal.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between border-t border-line pt-3 text-base font-semibold text-ink">
                 <span>Total</span>
                 <span>${(result?.total ?? estimatedTotal).toFixed(2)}</span>

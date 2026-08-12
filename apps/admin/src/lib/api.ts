@@ -305,3 +305,219 @@ export async function updateOrderStatus(
     body: JSON.stringify({ status, note }),
   });
 }
+
+// ---- Coupons ----
+
+export type Coupon = {
+  id: number;
+  code: string;
+  type: "percent" | "fixed";
+  value: string;
+  minSubtotal: string;
+  startsAt: string | null;
+  expiresAt: string | null;
+  usageLimit: number | null;
+  timesUsed: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CouponInput = {
+  code: string;
+  type: "percent" | "fixed";
+  value: number;
+  minSubtotal?: number;
+  startsAt?: string | null;
+  expiresAt?: string | null;
+  usageLimit?: number | null;
+  isActive?: boolean;
+};
+
+export async function getCoupons(accessToken: string) {
+  return apiFetch<Coupon[]>("/admin/coupons", { accessToken });
+}
+
+export async function createCoupon(accessToken: string, input: CouponInput) {
+  return apiFetch<Coupon>("/admin/coupons", {
+    method: "POST",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateCoupon(accessToken: string, id: number, input: Partial<CouponInput>) {
+  return apiFetch<Coupon>(`/admin/coupons/${id}`, {
+    method: "PATCH",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteCoupon(accessToken: string, id: number) {
+  return apiFetch<void>(`/admin/coupons/${id}`, { method: "DELETE", accessToken });
+}
+
+// ---- Reviews ----
+
+export type AdminReview = {
+  id: number;
+  rating: number;
+  title: string;
+  body: string;
+  isApproved: boolean;
+  isFeatured: boolean;
+  authorName: string;
+  productName: string;
+  productSlug: string;
+  createdAt: string;
+};
+
+export async function getReviews(
+  accessToken: string,
+  query: { isApproved?: boolean; page?: number; limit?: number } = {}
+) {
+  const params = new URLSearchParams();
+  if (query.isApproved !== undefined) params.set("isApproved", String(query.isApproved));
+  params.set("page", String(query.page ?? 1));
+  params.set("limit", String(query.limit ?? 20));
+  return apiFetch<Paginated<AdminReview>>(`/admin/reviews?${params.toString()}`, { accessToken });
+}
+
+export async function updateReview(
+  accessToken: string,
+  id: number,
+  input: { isApproved?: boolean; isFeatured?: boolean }
+) {
+  return apiFetch<AdminReview>(`/admin/reviews/${id}`, {
+    method: "PATCH",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+// ---- Blog ----
+
+export type AdminBlogPost = {
+  id: number;
+  slug: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  status: "draft" | "published";
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  coverAsset: { url: string } | null;
+  authorAdmin: { name: string } | null;
+};
+
+export type BlogPostInput = {
+  slug: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  coverImageUrl?: string;
+  status?: "draft" | "published";
+};
+
+export async function getBlogPosts(accessToken: string) {
+  return apiFetch<AdminBlogPost[]>("/admin/blog", { accessToken });
+}
+
+export async function getBlogPost(accessToken: string, id: number) {
+  return apiFetch<AdminBlogPost>(`/admin/blog/${id}`, { accessToken });
+}
+
+export async function createBlogPost(accessToken: string, input: BlogPostInput) {
+  return apiFetch<AdminBlogPost>("/admin/blog", {
+    method: "POST",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateBlogPost(
+  accessToken: string,
+  id: number,
+  input: Partial<BlogPostInput>
+) {
+  return apiFetch<AdminBlogPost>(`/admin/blog/${id}`, {
+    method: "PATCH",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteBlogPost(accessToken: string, id: number) {
+  return apiFetch<void>(`/admin/blog/${id}`, { method: "DELETE", accessToken });
+}
+
+// ---- FAQs ----
+
+export type AdminFaq = {
+  id: number;
+  group: "shipping" | "returns" | "orders";
+  question: string;
+  answer: string;
+  sortOrder: number;
+};
+
+export type FaqInput = {
+  group: "shipping" | "returns" | "orders";
+  question: string;
+  answer: string;
+  sortOrder?: number;
+};
+
+export async function getFaqs(accessToken: string) {
+  return apiFetch<AdminFaq[]>("/admin/faqs", { accessToken });
+}
+
+export async function createFaq(accessToken: string, input: FaqInput) {
+  return apiFetch<AdminFaq>("/admin/faqs", {
+    method: "POST",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateFaq(accessToken: string, id: number, input: Partial<FaqInput>) {
+  return apiFetch<AdminFaq>(`/admin/faqs/${id}`, {
+    method: "PATCH",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteFaq(accessToken: string, id: number) {
+  return apiFetch<void>(`/admin/faqs/${id}`, { method: "DELETE", accessToken });
+}
+
+// ---- Contact messages ----
+
+export type AdminContactMessage = {
+  id: number;
+  name: string;
+  email: string;
+  subject: string | null;
+  message: string;
+  status: "new" | "read" | "replied";
+  createdAt: string;
+};
+
+export async function getContactMessages(accessToken: string) {
+  return apiFetch<AdminContactMessage[]>("/admin/contact-messages", { accessToken });
+}
+
+export async function updateContactMessage(
+  accessToken: string,
+  id: number,
+  status: "new" | "read" | "replied"
+) {
+  return apiFetch<AdminContactMessage>(`/admin/contact-messages/${id}`, {
+    method: "PATCH",
+    accessToken,
+    body: JSON.stringify({ status }),
+  });
+}

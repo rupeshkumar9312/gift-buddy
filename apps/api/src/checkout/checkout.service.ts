@@ -10,6 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CartIdentity, CartService } from '../cart/cart.service';
 import { ShippingService } from '../shipping/shipping.service';
+import { CouponsService } from '../coupons/coupons.service';
 import { PaymentsService } from '../payments/payments.service';
 import { Payment, PaymentStatus } from '../payments/entities/payment.entity';
 import {
@@ -59,6 +60,7 @@ export class CheckoutService {
     private readonly dataSource: DataSource,
     private readonly cartService: CartService,
     private readonly shippingService: ShippingService,
+    private readonly couponsService: CouponsService,
     private readonly paymentsService: PaymentsService,
     private readonly mailService: MailService,
     @InjectRepository(Payment)
@@ -101,7 +103,24 @@ export class CheckoutService {
       shippingMethod,
       subtotal,
     );
-    const total = Math.round((subtotal + shippingTotal) * 100) / 100;
+
+    // Re-resolved here rather than trusted from the cart preview — if the
+    // coupon expired or hit its usage limit between apply and checkout, this
+    // throws so the customer sees it instead of silently paying full price
+    // for a discount the cart UI showed them.
+    let discountTotal = 0;
+    let appliedCouponId: number | null = null;
+    if (cart.couponCode) {
+      const coupon = await this.couponsService.resolve(
+        cart.couponCode,
+        subtotal,
+      );
+      discountTotal = this.couponsService.computeDiscount(coupon, subtotal);
+      appliedCouponId = coupon.id;
+    }
+
+    const total =
+      Math.round((subtotal + shippingTotal - discountTotal) * 100) / 100;
     const currency = cart.currency ?? 'usd';
     const shippingAddress = toOrderAddress(dto.shippingAddress);
     const billingAddress = dto.billingAddress
@@ -120,7 +139,7 @@ export class CheckoutService {
         subtotal: subtotal.toFixed(2),
         shippingTotal: shippingTotal.toFixed(2),
         taxTotal: '0.00',
-        discountTotal: '0.00',
+        discountTotal: discountTotal.toFixed(2),
         total: total.toFixed(2),
         currency,
         shippingAddress,
@@ -155,6 +174,10 @@ export class CheckoutService {
           note: 'Order created at checkout',
         }),
       );
+
+      if (appliedCouponId) {
+        await this.couponsService.incrementUsage(appliedCouponId, manager);
+      }
 
       return savedOrder;
     });

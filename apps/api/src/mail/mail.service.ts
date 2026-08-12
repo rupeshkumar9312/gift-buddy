@@ -61,4 +61,36 @@ export class MailService {
       );
     }
   }
+
+  async sendContactAck(params: { to: string; name: string }): Promise<void> {
+    try {
+      await this.transporter.sendMail({
+        from: this.from,
+        to: params.to,
+        subject: `We got your message, ${params.name}`,
+        text: `Thanks for reaching out! We've received your message and will get back to you shortly.`,
+        html: `<p>Thanks for reaching out, ${params.name}! We've received your message and will get back to you shortly.</p>`,
+      });
+    } catch (error) {
+      // Best-effort, same rationale as sendOrderConfirmation above.
+      this.logger.error(`Failed to send contact ack email: ${String(error)}`);
+    }
+  }
+
+  async sendNewsletterWelcome(params: { to: string }): Promise<void> {
+    try {
+      await this.transporter.sendMail({
+        from: this.from,
+        to: params.to,
+        subject: `Welcome to the GiftBuddy newsletter`,
+        text: `You're subscribed! We'll send news and special offers to this address.`,
+        html: `<p>You're subscribed! We'll send news and special offers to this address.</p>`,
+      });
+    } catch (error) {
+      // Best-effort, same rationale as sendOrderConfirmation above.
+      this.logger.error(
+        `Failed to send newsletter welcome email: ${String(error)}`,
+      );
+    }
+  }
 }

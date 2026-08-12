@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -23,6 +24,7 @@ import { OptionalJwtAccessGuard } from '../auth/guards/optional-jwt-access.guard
 import { CartService, type CartIdentity } from './cart.service';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
+import { ApplyCouponDto } from './dto/apply-coupon.dto';
 
 export const CART_COOKIE = 'cart_token';
 const CART_COOKIE_PATH = '/api/v1';
@@ -101,6 +103,38 @@ export class CartController {
       return this.cartService.toResponse(null);
     }
     const updated = await this.cartService.removeItem(cart, productId);
+    return this.cartService.toResponse(updated);
+  }
+
+  @Post('coupon')
+  async applyCoupon(
+    @CurrentUser() user: CurrentUserPayload | undefined,
+    @Req() req: Request,
+    @Body() dto: ApplyCouponDto,
+  ) {
+    const cart = await this.cartService.findActiveCart(
+      this.identity(user, req),
+    );
+    if (!cart) {
+      throw new BadRequestException('Your cart is empty');
+    }
+    const updated = await this.cartService.applyCoupon(cart, dto.code);
+    return this.cartService.toResponse(updated);
+  }
+
+  @Delete('coupon')
+  @HttpCode(HttpStatus.OK)
+  async removeCoupon(
+    @CurrentUser() user: CurrentUserPayload | undefined,
+    @Req() req: Request,
+  ) {
+    const cart = await this.cartService.findActiveCart(
+      this.identity(user, req),
+    );
+    if (!cart) {
+      return this.cartService.toResponse(null);
+    }
+    const updated = await this.cartService.removeCoupon(cart);
     return this.cartService.toResponse(updated);
   }
 

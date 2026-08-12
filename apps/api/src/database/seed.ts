@@ -8,8 +8,20 @@ import { ShippingMethod } from '../shipping/entities/shipping-method.entity';
 import { Permission } from '../admin/entities/permission.entity';
 import { Role } from '../admin/entities/role.entity';
 import { AdminUser } from '../admin/entities/admin-user.entity';
+import { User } from '../users/entities/user.entity';
+import { Review } from '../reviews/entities/review.entity';
+import { Coupon } from '../coupons/entities/coupon.entity';
+import { Faq } from '../content/entities/faq.entity';
+import { BlogPost } from '../content/entities/blog-post.entity';
 import { seedCategories, seedProducts } from './seed-data';
 import { seedPermissions, seedRoles, seedSuperAdmin } from './admin-seed-data';
+import {
+  seedBlogPosts,
+  seedCoupons,
+  seedCustomers,
+  seedFaqs,
+  seedReviews,
+} from './engagement-seed-data';
 
 const OLD_CREATED_AT = daysAgo(60);
 const NEW_CREATED_AT = daysAgo(5);
@@ -26,6 +38,15 @@ async function seed() {
 
   await dataSource.query('SET FOREIGN_KEY_CHECKS = 0');
   for (const table of [
+    'wishlist_items',
+    'wishlists',
+    'reviews',
+    'coupons',
+    'newsletter_subscribers',
+    'contact_messages',
+    'faqs',
+    'blog_posts',
+    'users',
     'product_images',
     'products',
     'categories',
@@ -67,6 +88,7 @@ async function seed() {
   }
 
   console.log(`Seeding ${seedProducts.length} products...`);
+  const productsBySlug = new Map<string, Product>();
   for (const source of seedProducts) {
     const category = categoriesBySlug.get(source.category);
     if (!category) {
@@ -106,6 +128,8 @@ async function seed() {
         }),
       );
     }
+
+    productsBySlug.set(product.slug, product);
   }
 
   console.log('Seeding shipping methods...');
@@ -158,7 +182,7 @@ async function seed() {
       `Seed admin references unknown role "${seedSuperAdmin.roleName}"`,
     );
   }
-  await adminUserRepo.save(
+  const superAdmin = await adminUserRepo.save(
     adminUserRepo.create({
       email: seedSuperAdmin.email,
       passwordHash: await argon2.hash(seedSuperAdmin.password),
@@ -166,6 +190,80 @@ async function seed() {
       roleId: superAdminRole.id,
     }),
   );
+
+  console.log(`Seeding ${seedCustomers.length} customers...`);
+  const userRepo = dataSource.getRepository(User);
+  const usersByEmail = new Map<string, User>();
+  for (const source of seedCustomers) {
+    const user = await userRepo.save(
+      userRepo.create({
+        email: source.email,
+        passwordHash: await argon2.hash(source.password),
+        firstName: source.firstName,
+        lastName: source.lastName,
+      }),
+    );
+    usersByEmail.set(source.email, user);
+  }
+
+  console.log(`Seeding ${seedReviews.length} reviews...`);
+  const reviewRepo = dataSource.getRepository(Review);
+  for (const source of seedReviews) {
+    const product = productsBySlug.get(source.productSlug);
+    const user = usersByEmail.get(source.customerEmail);
+    if (!product || !user) {
+      throw new Error(
+        `Seed review references unknown product "${source.productSlug}" or customer "${source.customerEmail}"`,
+      );
+    }
+    await reviewRepo.save(
+      reviewRepo.create({
+        productId: product.id,
+        userId: user.id,
+        rating: source.rating,
+        title: source.title,
+        body: source.body,
+        isApproved: source.isApproved,
+        isFeatured: source.isFeatured,
+      }),
+    );
+  }
+
+  console.log(`Seeding ${seedCoupons.length} coupons...`);
+  const couponRepo = dataSource.getRepository(Coupon);
+  for (const source of seedCoupons) {
+    await couponRepo.save(couponRepo.create(source));
+  }
+
+  console.log(`Seeding ${seedFaqs.length} FAQs...`);
+  const faqRepo = dataSource.getRepository(Faq);
+  for (const source of seedFaqs) {
+    await faqRepo.save(faqRepo.create(source));
+  }
+
+  console.log(`Seeding ${seedBlogPosts.length} blog posts...`);
+  const blogRepo = dataSource.getRepository(BlogPost);
+  for (const source of seedBlogPosts) {
+    const coverAsset = await mediaRepo.save(
+      mediaRepo.create({
+        url: source.coverImage,
+        provider: 'picsum',
+        altText: source.title,
+      }),
+    );
+    await blogRepo.save(
+      blogRepo.create({
+        slug: source.slug,
+        title: source.title,
+        excerpt: source.excerpt,
+        content: source.content,
+        coverAssetId: coverAsset.id,
+        authorAdminId: superAdmin.id,
+        status: source.status,
+        publishedAt: source.publishedAt,
+      }),
+    );
+  }
 
   console.log('Seed complete.');
   await dataSource.destroy();

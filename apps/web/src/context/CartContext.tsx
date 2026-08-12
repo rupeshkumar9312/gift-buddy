@@ -2,12 +2,54 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Product } from "@/lib/types";
-import { addCartItem, getCart, removeCartItem, updateCartItem, type Cart, type CartItem } from "@/lib/api";
+import {
+  addCartItem,
+  addWishlistItem,
+  applyCoupon as applyCouponApi,
+  getCart,
+  getWishlist,
+  removeCartItem,
+  removeCoupon as removeCouponApi,
+  removeWishlistItem,
+  updateCartItem,
+  type Cart,
+  type CartItem,
+  type WishlistItem,
+} from "@/lib/api";
 import { useAuth } from "./AuthContext";
 
 export type CartLine = CartItem;
 
-const EMPTY_CART: Cart = { id: null, items: [], subtotal: 0, itemCount: 0 };
+const EMPTY_CART: Cart = {
+  id: null,
+  items: [],
+  subtotal: 0,
+  itemCount: 0,
+  couponCode: null,
+  discountTotal: 0,
+  total: 0,
+};
+
+// The wishlist API only returns a lightweight item shape, not a full Product
+// — this backfills the fields ProductCard needs (rating/badge/gallery) with
+// neutral defaults so the wishlist page can reuse it without a second card.
+function wishlistItemToProduct(item: WishlistItem): Product {
+  return {
+    id: item.productId,
+    slug: item.slug,
+    name: item.name,
+    price: item.price,
+    salePrice: item.salePrice ?? undefined,
+    image: item.image ?? "",
+    rating: 0,
+    reviews: 0,
+    category: "",
+    description: "",
+    sku: "",
+    inStock: item.inStock,
+    gallery: item.image ? [item.image] : [],
+  };
+}
 
 type CartContextValue = {
   lines: CartLine[];
@@ -20,16 +62,21 @@ type CartContextValue = {
   removeFromCart: (productId: number) => Promise<void>;
   updateQuantity: (productId: number, quantity: number) => Promise<void>;
   refreshCart: () => Promise<void>;
-  toggleWishlist: (product: Product) => void;
-  isWishlisted: (slug: string) => boolean;
+  toggleWishlist: (product: Product) => Promise<void>;
+  isWishlisted: (productId: number) => boolean;
   itemCount: number;
   subtotal: number;
+  discountTotal: number;
+  total: number;
+  couponCode: string | null;
+  applyCoupon: (code: string) => Promise<void>;
+  removeCoupon: () => Promise<void>;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
   const [cart, setCart] = useState<Cart>(EMPTY_CART);
   const [wishlist, setWishlist] = useState<Product[]>([]);
   const [isCartOpen, setCartOpen] = useState(false);
@@ -53,6 +100,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
     };
   }, [user?.id]);
 
+  // Wishlist is server-backed for signed-in customers only (the API requires
+  // login — no guest wishlist token like cart has). Guests fall back to a
+  // local, in-memory wishlist that's lost on refresh.
+  useEffect(() => {
+    let cancelled = false;
+    const load = user && accessToken ? getWishlist(accessToken) : Promise.resolve([]);
+    load
+      .then((items) => {
+        if (!cancelled) setWishlist(items.map(wishlistItemToProduct));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [user, accessToken]);
+
   const addToCart = async (product: Product, quantity = 1) => {
     const data = await addCartItem(product.id, quantity);
     setCart(data);
@@ -72,18 +135,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCart(data);
   };
 
-  const toggleWishlist = (product: Product) => {
+  const toggleWishlist = async (product: Product) => {
+    const wishlisted = wishlist.some((p) => p.id === product.id);
+
+    if (user && accessToken) {
+      const items = wishlisted
+        ? await removeWishlistItem(accessToken, product.id)
+        : await addWishlistItem(accessToken, product.id);
+      setWishlist(items.map(wishlistItemToProduct));
+      return;
+    }
+
     setWishlist((prev) =>
-      prev.some((p) => p.slug === product.slug)
-        ? prev.filter((p) => p.slug !== product.slug)
-        : [...prev, product]
+      wishlisted ? prev.filter((p) => p.id !== product.id) : [...prev, product]
     );
   };
 
-  const isWishlisted = (slug: string) => wishlist.some((p) => p.slug === slug);
+  const isWishlisted = (productId: number) => wishlist.some((p) => p.id === productId);
 
   const refreshCart = async () => {
     const data = await getCart();
+    setCart(data);
+  };
+
+  const applyCoupon = async (code: string) => {
+    const data = await applyCouponApi(code);
+    setCart(data);
+  };
+
+  const removeCoupon = async () => {
+    const data = await removeCouponApi();
     setCart(data);
   };
 
@@ -104,6 +185,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         isWishlisted,
         itemCount: cart.itemCount,
         subtotal: cart.subtotal,
+        discountTotal: cart.discountTotal,
+        total: cart.total,
+        couponCode: cart.couponCode,
+        applyCoupon,
+        removeCoupon,
       }}
     >
       {children}

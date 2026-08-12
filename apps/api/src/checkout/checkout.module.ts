@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CartModule } from '../cart/cart.module';
 import { ShippingModule } from '../shipping/shipping.module';
+import { CouponsModule } from '../coupons/coupons.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { MailModule } from '../mail/mail.module';
 import { Order } from '../orders/entities/order.entity';
@@ -23,6 +24,7 @@ import { CheckoutController } from './checkout.controller';
     ]),
     CartModule,
     ShippingModule,
+    CouponsModule,
     PaymentsModule,
     MailModule,
   ],

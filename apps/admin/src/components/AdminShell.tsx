@@ -3,7 +3,19 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Gift, LayoutDashboard, ListTree, LogOut, Package, ShoppingCart } from "lucide-react";
+import {
+  Gift,
+  LayoutDashboard,
+  ListTree,
+  LogOut,
+  Mail,
+  MessageSquareText,
+  Newspaper,
+  Package,
+  ShoppingCart,
+  Star,
+  Tag,
+} from "lucide-react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 
 const NAV_ITEMS = [
@@ -11,6 +23,11 @@ const NAV_ITEMS = [
   { href: "/products", label: "Products", icon: Package, permission: "products.read" },
   { href: "/categories", label: "Categories", icon: ListTree, permission: "products.read" },
   { href: "/orders", label: "Orders", icon: ShoppingCart, permission: "orders.read" },
+  { href: "/coupons", label: "Coupons", icon: Tag, permission: "marketing.write" },
+  { href: "/reviews", label: "Reviews", icon: Star, permission: "reviews.moderate" },
+  { href: "/blog", label: "Blog", icon: Newspaper, permission: "content.read" },
+  { href: "/faqs", label: "FAQs", icon: MessageSquareText, permission: "content.read" },
+  { href: "/contact-messages", label: "Contact Inbox", icon: Mail, permission: "content.read" },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

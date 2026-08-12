@@ -18,6 +18,9 @@ export type CartResponse = {
   items: CartItemResponse[];
   subtotal: number;
   itemCount: number;
+  couponCode: string | null;
+  discountTotal: number;
+  total: number;
 };
 
 export function toCartItemResponse(item: CartItem): CartItemResponse {
@@ -46,13 +49,19 @@ export function toCartItemResponse(item: CartItem): CartItemResponse {
 export function toCartResponse(
   cartId: number | null,
   items: CartItem[],
+  coupon: { code: string; discount: number } | null = null,
 ): CartResponse {
   const lines = items.map(toCartItemResponse);
+  const subtotal =
+    Math.round(lines.reduce((sum, l) => sum + l.lineTotal, 0) * 100) / 100;
+  const discountTotal = coupon ? Math.min(coupon.discount, subtotal) : 0;
   return {
     id: cartId,
     items: lines,
-    subtotal:
-      Math.round(lines.reduce((sum, l) => sum + l.lineTotal, 0) * 100) / 100,
+    subtotal,
     itemCount: lines.reduce((sum, l) => sum + l.quantity, 0),
+    couponCode: coupon?.code ?? null,
+    discountTotal,
+    total: Math.round((subtotal - discountTotal) * 100) / 100,
   };
 }

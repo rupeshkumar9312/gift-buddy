@@ -1,35 +1,69 @@
 "use client";
 
+import { useState } from "react";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { PageBanner } from "@/components/PageBanner";
+import { submitContact } from "@/lib/api";
 
 const inputClass =
   "w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm outline-none focus:border-primary";
 
 export default function ContactPage() {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    const form = new FormData(e.currentTarget);
+    try {
+      await submitContact({
+        name: String(form.get("name")),
+        email: String(form.get("email")),
+        subject: String(form.get("subject") || "") || undefined,
+        message: String(form.get("message")),
+      });
+      setSent(true);
+      e.currentTarget.reset();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't send your message. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <>
       <PageBanner title="Contact Us" crumbs={[{ label: "Home", href: "/" }, { label: "Contact" }]} />
 
       <div className="container-page py-14">
         <div className="grid grid-cols-1 gap-14 lg:grid-cols-[1fr_380px]">
-          <form className="flex flex-col gap-4" onSubmit={(e) => e.preventDefault()}>
+          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <h2 className="text-2xl font-medium">Get In Touch</h2>
             <p className="max-w-md text-sm text-muted">
               We promise we&rsquo;ll get back to you promptly &ndash; your gifting needs are
               always on our minds!
             </p>
             <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <input required placeholder="Your name" className={inputClass} />
-              <input required type="email" placeholder="Your email" className={inputClass} />
+              <input required name="name" placeholder="Your name" className={inputClass} />
+              <input required name="email" type="email" placeholder="Your email" className={inputClass} />
             </div>
-            <input placeholder="Subject" className={inputClass} />
-            <textarea required placeholder="Your message" rows={6} className={inputClass} />
+            <input name="subject" placeholder="Subject" className={inputClass} />
+            <textarea required name="message" placeholder="Your message" rows={6} className={inputClass} />
+            {error && <p className="text-sm text-red-500">{error}</p>}
+            {sent && (
+              <p className="text-sm text-primary">
+                Thanks for reaching out — we&rsquo;ll get back to you shortly.
+              </p>
+            )}
             <button
               type="submit"
-              className="mt-2 w-fit rounded-full bg-primary px-8 py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark"
+              disabled={submitting}
+              className="mt-2 w-fit rounded-full bg-primary px-8 py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Send Message
+              {submitting ? "Sending..." : "Send Message"}
             </button>
           </form>
 
