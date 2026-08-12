@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Jost } from "next/font/google";
 import "./globals.css";
+import { AdminAuthProvider } from "@/context/AdminAuthContext";
 
 const jost = Jost({
   variable: "--font-jost",
@@ -16,7 +17,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${jost.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col text-ink">{children}</body>
+      <body className="flex min-h-full flex-col bg-cream text-ink">
+        <AdminAuthProvider>{children}</AdminAuthProvider>
+      </body>
     </html>
   );
 }

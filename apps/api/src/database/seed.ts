@@ -1,10 +1,15 @@
+import * as argon2 from 'argon2';
 import dataSource from './data-source';
 import { Category } from '../categories/entities/category.entity';
 import { MediaAsset } from '../media/entities/media-asset.entity';
 import { Product } from '../products/entities/product.entity';
 import { ProductImage } from '../products/entities/product-image.entity';
 import { ShippingMethod } from '../shipping/entities/shipping-method.entity';
+import { Permission } from '../admin/entities/permission.entity';
+import { Role } from '../admin/entities/role.entity';
+import { AdminUser } from '../admin/entities/admin-user.entity';
 import { seedCategories, seedProducts } from './seed-data';
+import { seedPermissions, seedRoles, seedSuperAdmin } from './admin-seed-data';
 
 const OLD_CREATED_AT = daysAgo(60);
 const NEW_CREATED_AT = daysAgo(5);
@@ -26,6 +31,10 @@ async function seed() {
     'categories',
     'media_assets',
     'shipping_methods',
+    'admin_users',
+    'role_permissions',
+    'roles',
+    'permissions',
   ]) {
     await dataSource.query(`TRUNCATE TABLE \`${table}\``);
   }
@@ -107,6 +116,54 @@ async function seed() {
       price: '8.00',
       freeOverAmount: '99.00',
       sortOrder: 0,
+    }),
+  );
+
+  console.log('Seeding permissions, roles, and the default admin user...');
+  const permissionRepo = dataSource.getRepository(Permission);
+  const roleRepo = dataSource.getRepository(Role);
+  const adminUserRepo = dataSource.getRepository(AdminUser);
+
+  const permissionsByKey = new Map<string, Permission>();
+  for (const key of seedPermissions) {
+    const permission = await permissionRepo.save(
+      permissionRepo.create({ key }),
+    );
+    permissionsByKey.set(key, permission);
+  }
+
+  const rolesByName = new Map<string, Role>();
+  for (const source of seedRoles) {
+    const role = await roleRepo.save(
+      roleRepo.create({
+        name: source.name,
+        description: source.description,
+        permissions: source.permissions.map((key) => {
+          const permission = permissionsByKey.get(key);
+          if (!permission) {
+            throw new Error(
+              `Seed role "${source.name}" references unknown permission "${key}"`,
+            );
+          }
+          return permission;
+        }),
+      }),
+    );
+    rolesByName.set(source.name, role);
+  }
+
+  const superAdminRole = rolesByName.get(seedSuperAdmin.roleName);
+  if (!superAdminRole) {
+    throw new Error(
+      `Seed admin references unknown role "${seedSuperAdmin.roleName}"`,
+    );
+  }
+  await adminUserRepo.save(
+    adminUserRepo.create({
+      email: seedSuperAdmin.email,
+      passwordHash: await argon2.hash(seedSuperAdmin.password),
+      name: seedSuperAdmin.name,
+      roleId: superAdminRole.id,
     }),
   );
 
