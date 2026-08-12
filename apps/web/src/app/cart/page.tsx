@@ -41,42 +41,44 @@ export default function CartPage() {
                 <span />
               </div>
               <ul className="flex flex-col divide-y divide-line">
-                {lines.map(({ product, quantity }) => {
-                  const price = product.salePrice ?? product.price;
+                {lines.map((line) => {
+                  const price = line.salePrice ?? line.price;
                   return (
                     <li
-                      key={product.slug}
+                      key={line.productId}
                       className="grid grid-cols-1 gap-4 py-6 sm:grid-cols-[2fr_1fr_1fr_1fr_auto] sm:items-center"
                     >
                       <div className="flex items-center gap-4">
                         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-cream">
-                          <Image src={product.image} alt={product.name} fill className="object-cover" sizes="80px" />
+                          {line.image && (
+                            <Image src={line.image} alt={line.name} fill className="object-cover" sizes="80px" />
+                          )}
                         </div>
-                        <Link href={`/product/${product.slug}`} className="text-sm font-medium hover:text-primary">
-                          {product.name}
+                        <Link href={`/product/${line.slug}`} className="text-sm font-medium hover:text-primary">
+                          {line.name}
                         </Link>
                       </div>
                       <span className="text-sm text-muted">${price.toFixed(2)}</span>
                       <div className="flex items-center rounded-full border border-line w-fit">
                         <button
-                          onClick={() => updateQuantity(product.slug, quantity - 1)}
+                          onClick={() => updateQuantity(line.productId, line.quantity - 1)}
                           className="flex h-9 w-9 items-center justify-center text-ink transition hover:text-primary"
                           aria-label="Decrease quantity"
                         >
                           <Minus size={12} />
                         </button>
-                        <span className="w-7 text-center text-sm">{quantity}</span>
+                        <span className="w-7 text-center text-sm">{line.quantity}</span>
                         <button
-                          onClick={() => updateQuantity(product.slug, quantity + 1)}
+                          onClick={() => updateQuantity(line.productId, line.quantity + 1)}
                           className="flex h-9 w-9 items-center justify-center text-ink transition hover:text-primary"
                           aria-label="Increase quantity"
                         >
                           <Plus size={12} />
                         </button>
                       </div>
-                      <span className="text-sm font-medium text-ink">${(price * quantity).toFixed(2)}</span>
+                      <span className="text-sm font-medium text-ink">${line.lineTotal.toFixed(2)}</span>
                       <button
-                        onClick={() => removeFromCart(product.slug)}
+                        onClick={() => removeFromCart(line.productId)}
                         aria-label="Remove item"
                         className="flex h-9 w-9 items-center justify-center text-muted transition hover:text-primary"
                       >

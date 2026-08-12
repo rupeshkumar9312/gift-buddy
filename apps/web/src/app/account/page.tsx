@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageBanner } from "@/components/PageBanner";
 import { useAuth } from "@/context/AuthContext";
@@ -70,12 +71,20 @@ export default function AccountPage() {
               {user.firstName} {user.lastName}
             </p>
             <p className="text-sm text-muted">{user.email}</p>
-            <button
-              onClick={() => logout()}
-              className="mt-6 rounded-full border border-ink px-8 py-3 text-sm font-medium uppercase tracking-wide transition hover:border-primary hover:text-primary"
-            >
-              Sign Out
-            </button>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <Link
+                href="/account/orders"
+                className="rounded-full bg-primary px-8 py-3 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark"
+              >
+                Order History
+              </Link>
+              <button
+                onClick={() => logout()}
+                className="rounded-full border border-ink px-8 py-3 text-sm font-medium uppercase tracking-wide transition hover:border-primary hover:text-primary"
+              >
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
       </>

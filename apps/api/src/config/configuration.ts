@@ -19,4 +19,19 @@ export default () => ({
     refreshTtlSeconds: 30 * 24 * 60 * 60,
     refreshTtlMs: 30 * 24 * 60 * 60 * 1000,
   },
+  cart: {
+    // Guest cart identity cookie — mirrors the refresh token cookie pattern.
+    cookieTtlMs: 30 * 24 * 60 * 60 * 1000,
+  },
+  stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY ?? '',
+    webhookSecret:
+      process.env.STRIPE_WEBHOOK_SECRET ?? 'dev-webhook-secret-change-me',
+    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY ?? '',
+  },
+  mail: {
+    host: process.env.SMTP_HOST ?? 'localhost',
+    port: parseInt(process.env.SMTP_PORT ?? '1025', 10),
+    from: process.env.MAIL_FROM ?? 'GiftBuddy <orders@giftbuddy.test>',
+  },
 });

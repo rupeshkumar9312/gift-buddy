@@ -1,6 +1,7 @@
 import { Product } from './entities/product.entity';
 
 export type ProductResponse = {
+  id: number;
   slug: string;
   name: string;
   price: number;
@@ -24,6 +25,7 @@ export function toProductResponse(product: Product): ProductResponse {
   const gallery = images.map((image) => image.asset.url);
 
   return {
+    id: product.id,
     slug: product.slug,
     name: product.name,
     price: Number(product.price),

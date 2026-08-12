@@ -1,22 +1,25 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Product } from "@/lib/types";
+import { addCartItem, getCart, removeCartItem, updateCartItem, type Cart, type CartItem } from "@/lib/api";
+import { useAuth } from "./AuthContext";
 
-export type CartLine = {
-  product: Product;
-  quantity: number;
-};
+export type CartLine = CartItem;
+
+const EMPTY_CART: Cart = { id: null, items: [], subtotal: 0, itemCount: 0 };
 
 type CartContextValue = {
   lines: CartLine[];
   wishlist: Product[];
   isCartOpen: boolean;
+  isLoading: boolean;
   openCart: () => void;
   closeCart: () => void;
-  addToCart: (product: Product, quantity?: number) => void;
-  removeFromCart: (slug: string) => void;
-  updateQuantity: (slug: string, quantity: number) => void;
+  addToCart: (product: Product, quantity?: number) => Promise<void>;
+  removeFromCart: (productId: number) => Promise<void>;
+  updateQuantity: (productId: number, quantity: number) => Promise<void>;
+  refreshCart: () => Promise<void>;
   toggleWishlist: (product: Product) => void;
   isWishlisted: (slug: string) => boolean;
   itemCount: number;
@@ -26,31 +29,47 @@ type CartContextValue = {
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [lines, setLines] = useState<CartLine[]>([]);
+  const { user } = useAuth();
+  const [cart, setCart] = useState<Cart>(EMPTY_CART);
   const [wishlist, setWishlist] = useState<Product[]>([]);
   const [isCartOpen, setCartOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const addToCart = (product: Product, quantity = 1) => {
-    setLines((prev) => {
-      const existing = prev.find((l) => l.product.slug === product.slug);
-      if (existing) {
-        return prev.map((l) =>
-          l.product.slug === product.slug ? { ...l, quantity: l.quantity + quantity } : l
-        );
-      }
-      return [...prev, { product, quantity }];
-    });
+  // Cart is server-backed: a guest cart lives behind an httpOnly cookie, and
+  // logging in merges it into the user's cart — so re-fetch whenever the
+  // signed-in user changes (login, logout, or session restore on mount).
+  useEffect(() => {
+    let cancelled = false;
+    getCart()
+      .then((data) => {
+        if (!cancelled) setCart(data);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  const addToCart = async (product: Product, quantity = 1) => {
+    const data = await addCartItem(product.id, quantity);
+    setCart(data);
     setCartOpen(true);
   };
 
-  const removeFromCart = (slug: string) => {
-    setLines((prev) => prev.filter((l) => l.product.slug !== slug));
+  const removeFromCart = async (productId: number) => {
+    const data = await removeCartItem(productId);
+    setCart(data);
   };
 
-  const updateQuantity = (slug: string, quantity: number) => {
-    setLines((prev) =>
-      prev.map((l) => (l.product.slug === slug ? { ...l, quantity: Math.max(1, quantity) } : l))
-    );
+  const updateQuantity = async (productId: number, quantity: number) => {
+    if (quantity < 1) {
+      return removeFromCart(productId);
+    }
+    const data = await updateCartItem(productId, quantity);
+    setCart(data);
   };
 
   const toggleWishlist = (product: Product) => {
@@ -63,27 +82,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const isWishlisted = (slug: string) => wishlist.some((p) => p.slug === slug);
 
-  const itemCount = useMemo(() => lines.reduce((sum, l) => sum + l.quantity, 0), [lines]);
-  const subtotal = useMemo(
-    () => lines.reduce((sum, l) => sum + (l.product.salePrice ?? l.product.price) * l.quantity, 0),
-    [lines]
-  );
+  const refreshCart = async () => {
+    const data = await getCart();
+    setCart(data);
+  };
 
   return (
     <CartContext.Provider
       value={{
-        lines,
+        lines: cart.items,
         wishlist,
         isCartOpen,
+        isLoading,
         openCart: () => setCartOpen(true),
         closeCart: () => setCartOpen(false),
         addToCart,
         removeFromCart,
         updateQuantity,
+        refreshCart,
         toggleWishlist,
         isWishlisted,
-        itemCount,
-        subtotal,
+        itemCount: cart.itemCount,
+        subtotal: cart.subtotal,
       }}
     >
       {children}
