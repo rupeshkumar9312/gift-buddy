@@ -158,26 +158,47 @@ export type Cart = {
   total: number;
 };
 
-export async function getCart(): Promise<Cart> {
-  return apiFetch<Cart>("/cart");
+// A logged-in user's cart lives behind their account (userId), not the guest
+// cookie — every cart call needs the access token when one's available, or
+// operations silently drift onto a throwaway guest cart instead of the
+// user's real one (see the merge-on-login note in CartContext).
+function authHeader(accessToken?: string | null): HeadersInit | undefined {
+  return accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
 }
 
-export async function addCartItem(productId: number, quantity = 1): Promise<Cart> {
+export async function getCart(accessToken?: string | null): Promise<Cart> {
+  return apiFetch<Cart>("/cart", { headers: authHeader(accessToken) });
+}
+
+export async function addCartItem(
+  productId: number,
+  quantity = 1,
+  accessToken?: string | null
+): Promise<Cart> {
   return apiFetch<Cart>("/cart/items", {
     method: "POST",
+    headers: authHeader(accessToken),
     body: JSON.stringify({ productId, quantity }),
   });
 }
 
-export async function updateCartItem(productId: number, quantity: number): Promise<Cart> {
+export async function updateCartItem(
+  productId: number,
+  quantity: number,
+  accessToken?: string | null
+): Promise<Cart> {
   return apiFetch<Cart>(`/cart/items/${productId}`, {
     method: "PATCH",
+    headers: authHeader(accessToken),
     body: JSON.stringify({ quantity }),
   });
 }
 
-export async function removeCartItem(productId: number): Promise<Cart> {
-  return apiFetch<Cart>(`/cart/items/${productId}`, { method: "DELETE" });
+export async function removeCartItem(productId: number, accessToken?: string | null): Promise<Cart> {
+  return apiFetch<Cart>(`/cart/items/${productId}`, {
+    method: "DELETE",
+    headers: authHeader(accessToken),
+  });
 }
 
 // ---- Shipping ----
@@ -228,9 +249,10 @@ export type CheckoutResult = {
   publishableKey: string | null;
 };
 
-export async function checkout(input: CheckoutInput): Promise<CheckoutResult> {
+export async function checkout(input: CheckoutInput, accessToken?: string | null): Promise<CheckoutResult> {
   return apiFetch<CheckoutResult>("/checkout", {
     method: "POST",
+    headers: authHeader(accessToken),
     body: JSON.stringify(input),
   });
 }
@@ -300,17 +322,29 @@ export async function trackOrder(orderNumber: string, email: string): Promise<Or
   });
 }
 
+export async function cancelOrder(
+  orderNumber: string,
+  options: { accessToken?: string; email?: string }
+): Promise<OrderDetail> {
+  return apiFetch<OrderDetail>(`/orders/${orderNumber}/cancel`, {
+    method: "POST",
+    headers: authHeader(options.accessToken),
+    body: JSON.stringify({ email: options.email }),
+  });
+}
+
 // ---- Coupons (cart) ----
 
-export async function applyCoupon(code: string): Promise<Cart> {
+export async function applyCoupon(code: string, accessToken?: string | null): Promise<Cart> {
   return apiFetch<Cart>("/cart/coupon", {
     method: "POST",
+    headers: authHeader(accessToken),
     body: JSON.stringify({ code }),
   });
 }
 
-export async function removeCoupon(): Promise<Cart> {
-  return apiFetch<Cart>("/cart/coupon", { method: "DELETE" });
+export async function removeCoupon(accessToken?: string | null): Promise<Cart> {
+  return apiFetch<Cart>("/cart/coupon", { method: "DELETE", headers: authHeader(accessToken) });
 }
 
 // ---- Reviews ----

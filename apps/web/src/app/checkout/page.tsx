@@ -49,7 +49,7 @@ const EMPTY_FORM: FormState = {
 
 export default function CheckoutPage() {
   const { lines, subtotal, discountTotal, couponCode, refreshCart } = useCart();
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
   const router = useRouter();
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -113,7 +113,7 @@ export default function CheckoutPage() {
           phone: form.phone || undefined,
         },
         shippingMethodId,
-      });
+      }, accessToken);
       if (res.paymentMethod === "cod") {
         await refreshCart();
         router.push(`/checkout/success/${res.orderNumber}`);

@@ -87,7 +87,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // signed-in user changes (login, logout, or session restore on mount).
   useEffect(() => {
     let cancelled = false;
-    getCart()
+    getCart(accessToken)
       .then((data) => {
         if (!cancelled) setCart(data);
       })
@@ -98,7 +98,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [user?.id, accessToken]);
 
   // Wishlist is server-backed for signed-in customers only (the API requires
   // login — no guest wishlist token like cart has). Guests fall back to a
@@ -117,13 +117,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [user, accessToken]);
 
   const addToCart = async (product: Product, quantity = 1) => {
-    const data = await addCartItem(product.id, quantity);
+    const data = await addCartItem(product.id, quantity, accessToken);
     setCart(data);
     setCartOpen(true);
   };
 
   const removeFromCart = async (productId: number) => {
-    const data = await removeCartItem(productId);
+    const data = await removeCartItem(productId, accessToken);
     setCart(data);
   };
 
@@ -131,7 +131,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (quantity < 1) {
       return removeFromCart(productId);
     }
-    const data = await updateCartItem(productId, quantity);
+    const data = await updateCartItem(productId, quantity, accessToken);
     setCart(data);
   };
 
@@ -154,17 +154,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const isWishlisted = (productId: number) => wishlist.some((p) => p.id === productId);
 
   const refreshCart = async () => {
-    const data = await getCart();
+    const data = await getCart(accessToken);
     setCart(data);
   };
 
   const applyCoupon = async (code: string) => {
-    const data = await applyCouponApi(code);
+    const data = await applyCouponApi(code, accessToken);
     setCart(data);
   };
 
   const removeCoupon = async () => {
-    const data = await removeCouponApi();
+    const data = await removeCouponApi(accessToken);
     setCart(data);
   };
 
