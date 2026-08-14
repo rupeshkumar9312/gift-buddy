@@ -108,6 +108,20 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   CLOUDINARY_API_SECRET: string = '';
+
+  // Optional: when unset, the OTP request endpoint responds with a clear
+  // "not configured" error instead of the app failing to boot.
+  @IsString()
+  @IsOptional()
+  TWILIO_ACCOUNT_SID: string = '';
+
+  @IsString()
+  @IsOptional()
+  TWILIO_AUTH_TOKEN: string = '';
+
+  @IsString()
+  @IsOptional()
+  TWILIO_FROM_NUMBER: string = '';
 }
 
 export function validate(config: Record<string, unknown>) {

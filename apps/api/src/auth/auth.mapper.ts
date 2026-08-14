@@ -2,7 +2,7 @@ import { User } from '../users/entities/user.entity';
 
 export type PublicUser = {
   id: number;
-  email: string;
+  email: string | null;
   firstName: string;
   lastName: string;
   phone: string | null;

@@ -9,10 +9,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { RequestOtpDto } from './dto/request-otp.dto';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { JwtAccessGuard } from './guards/jwt-access.guard';
 import {
   CurrentUser,
@@ -61,6 +64,39 @@ export class AuthController {
       dto,
       cookies?.[CART_COOKIE],
     );
+    this.setRefreshCookie(res, refreshToken);
+    if (cookies?.[CART_COOKIE]) {
+      res.clearCookie(CART_COOKIE, { path: CART_COOKIE_PATH });
+    }
+    return { user, accessToken };
+  }
+
+  @Post('otp/request')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  requestOtp(@Body() dto: RequestOtpDto) {
+    return this.authService.requestOtp(dto.phone);
+  }
+
+  @Post('otp/verify')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async verifyOtp(
+    @Body() dto: VerifyOtpDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const cookies = req.cookies as Record<string, string | undefined>;
+    const { user, accessToken, refreshToken } =
+      await this.authService.verifyOtpAndAuth(
+        dto.phone,
+        dto.code,
+        dto.firstName,
+        dto.lastName,
+        cookies?.[CART_COOKIE],
+      );
     this.setRefreshCookie(res, refreshToken);
     if (cookies?.[CART_COOKIE]) {
       res.clearCookie(CART_COOKIE, { path: CART_COOKIE_PATH });

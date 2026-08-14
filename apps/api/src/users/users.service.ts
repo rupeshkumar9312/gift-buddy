@@ -14,6 +14,10 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { email } });
   }
 
+  findByPhone(phone: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { phone } });
+  }
+
   findByEmailWithSecrets(email: string): Promise<User | null> {
     return this.usersRepository
       .createQueryBuilder('user')
@@ -36,10 +40,12 @@ export class UsersService {
   }
 
   create(data: {
-    email: string;
-    passwordHash: string;
+    email?: string;
+    passwordHash?: string;
     firstName: string;
     lastName: string;
+    phone?: string;
+    phoneVerifiedAt?: Date;
   }): Promise<User> {
     const user = this.usersRepository.create(data);
     return this.usersRepository.save(user);
