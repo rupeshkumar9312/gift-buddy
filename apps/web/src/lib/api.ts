@@ -193,6 +193,10 @@ export async function getShippingMethods(): Promise<ShippingMethod[]> {
   return apiFetch<ShippingMethod[]>("/shipping-methods");
 }
 
+export async function getCheckoutConfig(): Promise<{ gatewayEnabled: boolean }> {
+  return apiFetch<{ gatewayEnabled: boolean }>("/checkout/config");
+}
+
 // ---- Checkout ----
 
 export type AddressInput = {
@@ -216,10 +220,11 @@ export type CheckoutInput = {
 
 export type CheckoutResult = {
   orderNumber: string;
-  clientSecret: string;
+  clientSecret: string | null;
   total: number;
   currency: string;
   devMode: boolean;
+  paymentMethod: "card" | "cod";
   publishableKey: string | null;
 };
 

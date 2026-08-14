@@ -77,6 +77,12 @@ class EnvironmentVariables {
   @IsOptional()
   STRIPE_PUBLISHABLE_KEY: string = '';
 
+  // Optional: 'true' routes checkout through Stripe (or its dev simulator);
+  // anything else, including unset, means Cash on Delivery only.
+  @IsString()
+  @IsOptional()
+  PAYMENT_GATEWAY_ENABLED: string = 'false';
+
   @IsString()
   @IsOptional()
   SMTP_HOST: string = 'localhost';

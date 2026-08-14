@@ -3,7 +3,12 @@
 import { use, useEffect, useState } from "react";
 import Image from "next/image";
 import { useAdminAuth } from "@/context/AdminAuthContext";
-import { getOrder, updateOrderStatus, type AdminOrderDetail } from "@/lib/api";
+import {
+  getOrder,
+  markCodCollected,
+  updateOrderStatus,
+  type AdminOrderDetail,
+} from "@/lib/api";
 import { formatMoney, STATUS_LABEL } from "@/lib/format";
 import { StatusBadge } from "@/components/StatusBadge";
 
@@ -25,6 +30,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [note, setNote] = useState("");
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [collecting, setCollecting] = useState(false);
 
   const load = () => {
     if (!accessToken) return;
@@ -50,11 +56,29 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     }
   };
 
+  const handleMarkCollected = async () => {
+    if (!accessToken) return;
+    setError(null);
+    setCollecting(true);
+    try {
+      setOrder(await markCodCollected(accessToken, orderId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't record the payment.");
+    } finally {
+      setCollecting(false);
+    }
+  };
+
   if (!order) {
     return <p className="text-sm text-muted">Loading…</p>;
   }
 
-  const nextOptions = NEXT_STATUS_OPTIONS[order.status] ?? [];
+  const isCod = order.paymentProvider === "cod";
+  const codCollected = order.paymentStatus === "succeeded";
+  const nextOptions =
+    isCod && order.status === "pending_payment"
+      ? ["fulfilled", "cancelled"]
+      : NEXT_STATUS_OPTIONS[order.status] ?? [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -63,8 +87,28 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           <h1 className="text-2xl font-semibold">{order.orderNumber}</h1>
           <p className="mt-1 text-sm text-muted">{order.email}</p>
         </div>
-        <StatusBadge status={order.status} />
+        <div className="flex items-center gap-2">
+          {isCod && (
+            <span className="inline-flex items-center rounded-full bg-cream px-2.5 py-1 text-xs font-medium text-muted">
+              Cash on Delivery{codCollected ? " · Collected" : ""}
+            </span>
+          )}
+          <StatusBadge status={order.status} />
+        </div>
       </div>
+
+      {canWrite && isCod && !codCollected && (
+        <div className="flex items-center justify-between rounded-2xl border border-line bg-white p-4 text-sm">
+          <p className="text-muted">Cash not yet collected for this order.</p>
+          <button
+            disabled={collecting}
+            onClick={handleMarkCollected}
+            className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-primary-dark disabled:opacity-60"
+          >
+            {collecting ? "Recording…" : "Mark Cash Collected"}
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
         <div className="flex flex-col gap-6">

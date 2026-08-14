@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Headers,
@@ -32,6 +33,13 @@ export class CheckoutController {
     private readonly config: ConfigService,
   ) {}
 
+  @Get('checkout/config')
+  getCheckoutConfig() {
+    return {
+      gatewayEnabled: this.config.get<boolean>('payments.gatewayEnabled'),
+    };
+  }
+
   @Post('checkout')
   @UseGuards(OptionalJwtAccessGuard)
   async checkout(
@@ -47,13 +55,15 @@ export class CheckoutController {
     const result = await this.checkoutService.checkout(identity, dto);
     return {
       orderNumber: result.orderNumber,
-      clientSecret: result.clientSecret,
+      clientSecret: result.clientSecret ?? null,
       total: result.total,
       currency: result.currency,
       devMode: result.devMode,
-      publishableKey: this.paymentsService.isDevMode
-        ? null
-        : this.config.get<string>('stripe.publishableKey') || null,
+      paymentMethod: result.paymentMethod,
+      publishableKey:
+        result.paymentMethod === 'card' && !this.paymentsService.isDevMode
+          ? this.config.get<string>('stripe.publishableKey') || null
+          : null,
     };
   }
 

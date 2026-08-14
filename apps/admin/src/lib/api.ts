@@ -236,6 +236,8 @@ export type AdminOrderSummary = {
   total: number;
   currency: string;
   itemCount: number;
+  paymentProvider: string | null;
+  paymentStatus: string | null;
   createdAt: string;
 };
 
@@ -303,6 +305,13 @@ export async function updateOrderStatus(
     method: "PATCH",
     accessToken,
     body: JSON.stringify({ status, note }),
+  });
+}
+
+export async function markCodCollected(accessToken: string, id: number) {
+  return apiFetch<AdminOrderDetail>(`/admin/orders/${id}/mark-cod-collected`, {
+    method: "POST",
+    accessToken,
   });
 }
 

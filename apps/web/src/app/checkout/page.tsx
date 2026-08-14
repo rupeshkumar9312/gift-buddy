@@ -10,6 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   checkout,
   devConfirmPayment,
+  getCheckoutConfig,
   getShippingMethods,
   type CheckoutResult,
   type ShippingMethod,
@@ -58,6 +59,7 @@ export default function CheckoutPage() {
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CheckoutResult | null>(null);
+  const [gatewayEnabled, setGatewayEnabled] = useState(true);
 
   useEffect(() => {
     getShippingMethods()
@@ -65,6 +67,9 @@ export default function CheckoutPage() {
         setShippingMethods(methods);
         setShippingMethodId(methods[0]?.id ?? null);
       })
+      .catch(() => undefined);
+    getCheckoutConfig()
+      .then((config) => setGatewayEnabled(config.gatewayEnabled))
       .catch(() => undefined);
   }, []);
 
@@ -109,6 +114,11 @@ export default function CheckoutPage() {
         },
         shippingMethodId,
       });
+      if (res.paymentMethod === "cod") {
+        await refreshCart();
+        router.push(`/checkout/success/${res.orderNumber}`);
+        return;
+      }
       setResult(res);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start checkout. Please try again.");
@@ -279,7 +289,11 @@ export default function CheckoutPage() {
                   disabled={submitting || !shippingMethodId}
                   className="w-full rounded-full bg-primary py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {submitting ? "Starting checkout…" : "Continue to Payment"}
+                  {submitting
+                    ? "Placing order…"
+                    : gatewayEnabled
+                      ? "Continue to Payment"
+                      : "Place Order (Pay on Delivery)"}
                 </button>
               </form>
             ) : (
@@ -312,7 +326,7 @@ export default function CheckoutPage() {
                         {confirming ? "Confirming…" : "Simulate Payment (Dev Mode)"}
                       </button>
                     </div>
-                  ) : result.publishableKey ? (
+                  ) : result.publishableKey && result.clientSecret ? (
                     <StripePaymentForm
                       publishableKey={result.publishableKey}
                       clientSecret={result.clientSecret}
