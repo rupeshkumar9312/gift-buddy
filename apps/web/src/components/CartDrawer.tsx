@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, X } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { formatMoney } from "@/lib/format";
 
 export function CartDrawer() {
   const { isCartOpen, closeCart, lines, removeFromCart, updateQuantity, subtotal } = useCart();
@@ -88,7 +89,7 @@ export function CartDrawer() {
                           <Plus size={12} />
                         </button>
                       </div>
-                      <span className="text-sm font-medium text-primary">${line.lineTotal.toFixed(2)}</span>
+                      <span className="text-sm font-medium text-primary">{formatMoney(line.lineTotal)}</span>
                     </div>
                   </div>
                 </li>
@@ -101,7 +102,7 @@ export function CartDrawer() {
           <div className="border-t border-line px-6 py-5">
             <div className="mb-4 flex items-center justify-between text-base">
               <span className="text-muted">Subtotal</span>
-              <span className="font-semibold text-ink">${subtotal.toFixed(2)}</span>
+              <span className="font-semibold text-ink">{formatMoney(subtotal)}</span>
             </div>
             <div className="flex flex-col gap-2.5">
               <Link

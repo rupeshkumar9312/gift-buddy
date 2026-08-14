@@ -70,7 +70,14 @@ export default function OrdersPage() {
                 <td className="px-5 py-3 text-muted">{formatDate(order.createdAt)}</td>
                 <td className="px-5 py-3 text-muted">{order.itemCount}</td>
                 <td className="px-5 py-3">
-                  <StatusBadge status={order.status} />
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={order.status} />
+                    {order.paymentProvider === "cod" && (
+                      <span className="text-xs font-medium uppercase tracking-wide text-muted">
+                        COD
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-5 py-3 text-right font-medium text-ink">
                   {formatMoney(order.total, order.currency)}

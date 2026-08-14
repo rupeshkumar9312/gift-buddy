@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category } from '../../categories/entities/category.entity';
 import { MediaAsset } from '../../media/entities/media-asset.entity';
+import { detectMediaProvider } from '../../media/media-provider.util';
 import { Product } from '../../products/entities/product.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -60,7 +61,7 @@ export class AdminCategoriesService {
       const asset = await this.mediaAssetRepository.save(
         this.mediaAssetRepository.create({
           url: dto.imageUrl,
-          provider: 'external',
+          provider: detectMediaProvider(dto.imageUrl),
         }),
       );
       imageAssetId = asset.id;
@@ -103,7 +104,7 @@ export class AdminCategoriesService {
       const asset = await this.mediaAssetRepository.save(
         this.mediaAssetRepository.create({
           url: dto.imageUrl,
-          provider: 'external',
+          provider: detectMediaProvider(dto.imageUrl),
         }),
       );
       category.imageAssetId = asset.id;

@@ -16,6 +16,7 @@ import {
 import { Logo } from "./Logo";
 import { mainNav } from "@/lib/nav";
 import { useCart } from "@/context/CartContext";
+import { formatMoney } from "@/lib/format";
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -35,7 +36,7 @@ export function Header() {
             <span>012 - 345 - 6789</span>
           </div>
           <div className="flex items-center gap-5">
-            <span>Free standard shipping on all orders over $99</span>
+            <span>Free standard shipping on all orders over {formatMoney(99)}</span>
             <span className="h-3 w-px bg-line" />
             <Link href="/about" className="hover:text-primary">About Us</Link>
             <Link href="/track-orders" className="hover:text-primary">Track Orders</Link>
@@ -110,7 +111,7 @@ export function Header() {
                 </span>
               )}
             </span>
-            <span className="hidden text-sm font-medium sm:inline">${subtotal.toFixed(2)}</span>
+            <span className="hidden text-sm font-medium sm:inline">{formatMoney(subtotal)}</span>
           </button>
         </div>
       </div>

@@ -4,7 +4,8 @@ import { useState } from "react";
 import Image from "next/image";
 import { Package } from "lucide-react";
 import { PageBanner } from "@/components/PageBanner";
-import { trackOrder, type OrderDetail } from "@/lib/api";
+import { cancelOrder, trackOrder, type OrderDetail } from "@/lib/api";
+import { formatMoney } from "@/lib/format";
 
 const STATUS_LABEL: Record<string, string> = {
   pending_payment: "Pending Payment",
@@ -15,18 +16,25 @@ const STATUS_LABEL: Record<string, string> = {
   refunded: "Refunded",
 };
 
+const CANCELLABLE_STATUSES = ["pending_payment", "paid"];
+
 export default function TrackOrdersPage() {
   const [orderNumber, setOrderNumber] = useState("");
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
     setOrder(null);
+    setConfirmingCancel(false);
+    setCancelError(null);
     try {
       const result = await trackOrder(orderNumber.trim(), email.trim());
       setOrder(result);
@@ -34,6 +42,20 @@ export default function TrackOrdersPage() {
       setError(err instanceof Error ? err.message : "We couldn't find that order.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      const updated = await cancelOrder(orderNumber.trim(), { email: email.trim() });
+      setOrder(updated);
+      setConfirmingCancel(false);
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : "Couldn't cancel your order.");
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -95,6 +117,39 @@ export default function TrackOrdersPage() {
                   {STATUS_LABEL[order.status] ?? order.status}
                 </span>
               </div>
+
+              {CANCELLABLE_STATUSES.includes(order.status) && (
+                <div className="border-b border-line py-3">
+                  {cancelError && <p className="mb-2 text-xs text-primary">{cancelError}</p>}
+                  {confirmingCancel ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-muted">Cancel this order? This can&rsquo;t be undone.</span>
+                      <button
+                        onClick={handleCancel}
+                        disabled={cancelling}
+                        className="rounded-full bg-primary px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:opacity-60"
+                      >
+                        {cancelling ? "Cancelling…" : "Yes, cancel"}
+                      </button>
+                      <button
+                        onClick={() => setConfirmingCancel(false)}
+                        disabled={cancelling}
+                        className="text-xs font-medium uppercase tracking-wide text-muted hover:text-ink"
+                      >
+                        Never mind
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmingCancel(true)}
+                      className="rounded-full border border-line px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-ink transition hover:border-primary hover:text-primary"
+                    >
+                      Cancel Order
+                    </button>
+                  )}
+                </div>
+              )}
+
               <ul className="mt-3 flex flex-col gap-3">
                 {order.items.map((item) => (
                   <li key={item.sku} className="flex items-center gap-3">
@@ -107,15 +162,13 @@ export default function TrackOrdersPage() {
                       <p className="text-ink">{item.productName}</p>
                       <p className="text-xs text-muted">Qty {item.quantity}</p>
                     </div>
-                    <span className="text-ink">${item.lineTotal.toFixed(2)}</span>
+                    <span className="text-ink">{formatMoney(item.lineTotal)}</span>
                   </li>
                 ))}
               </ul>
               <div className="mt-3 flex justify-between border-t border-line pt-3 font-semibold">
                 <span>Total</span>
-                <span>
-                  ${order.total.toFixed(2)} {order.currency.toUpperCase()}
-                </span>
+                <span>{formatMoney(order.total, order.currency)}</span>
               </div>
             </div>
           )}

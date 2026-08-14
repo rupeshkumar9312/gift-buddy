@@ -12,6 +12,7 @@ import {
   type AdminCategory,
   type CategoryInput,
 } from "@/lib/api";
+import { ImageUploadField } from "@/components/ImageUploadField";
 
 const EMPTY_FORM: CategoryInput = { slug: "", name: "", imageUrl: "", sortOrder: 0 };
 
@@ -137,11 +138,19 @@ export default function CategoriesPage() {
               />
             </Field>
             <Field label="Image URL">
-              <input
-                value={form.imageUrl}
-                onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                className={inputClass}
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  value={form.imageUrl}
+                  onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                  className={inputClass}
+                />
+                {accessToken && (
+                  <ImageUploadField
+                    accessToken={accessToken}
+                    onUploaded={(url) => setForm((f) => ({ ...f, imageUrl: url }))}
+                  />
+                )}
+              </div>
             </Field>
             <Field label="Sort order">
               <input

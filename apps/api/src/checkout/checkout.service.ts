@@ -5,11 +5,13 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { CartIdentity, CartService } from '../cart/cart.service';
 import { ShippingService } from '../shipping/shipping.service';
+import { CouponsService } from '../coupons/coupons.service';
 import { PaymentsService } from '../payments/payments.service';
 import { Payment, PaymentStatus } from '../payments/entities/payment.entity';
 import {
@@ -25,10 +27,11 @@ import { CheckoutDto } from './dto/checkout.dto';
 
 export type CheckoutResult = {
   orderNumber: string;
-  clientSecret: string;
+  clientSecret?: string;
   total: number;
   currency: string;
   devMode: boolean;
+  paymentMethod: 'card' | 'cod';
 };
 
 function toOrderAddress(input: CheckoutDto['shippingAddress']): OrderAddress {
@@ -59,13 +62,34 @@ export class CheckoutService {
     private readonly dataSource: DataSource,
     private readonly cartService: CartService,
     private readonly shippingService: ShippingService,
+    private readonly couponsService: CouponsService,
     private readonly paymentsService: PaymentsService,
     private readonly mailService: MailService,
+    private readonly config: ConfigService,
     @InjectRepository(Payment)
     private readonly paymentRepository: Repository<Payment>,
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
   ) {}
+
+  /** Shared by the Stripe webhook path and the Cash-on-Delivery checkout
+   * path — both need to reserve stock the moment an order becomes real,
+   * just at different points in the flow. */
+  private async decrementStock(
+    manager: EntityManager,
+    orderItems: OrderItem[],
+  ): Promise<void> {
+    for (const item of orderItems) {
+      if (item.productId) {
+        await manager.decrement(
+          Product,
+          { id: item.productId },
+          'stockQty',
+          item.quantity,
+        );
+      }
+    }
+  }
 
   async checkout(
     identity: CartIdentity,
@@ -101,16 +125,38 @@ export class CheckoutService {
       shippingMethod,
       subtotal,
     );
-    const total = Math.round((subtotal + shippingTotal) * 100) / 100;
-    const currency = cart.currency ?? 'usd';
+
+    // Re-resolved here rather than trusted from the cart preview — if the
+    // coupon expired or hit its usage limit between apply and checkout, this
+    // throws so the customer sees it instead of silently paying full price
+    // for a discount the cart UI showed them.
+    let discountTotal = 0;
+    let appliedCouponId: number | null = null;
+    if (cart.couponCode) {
+      const coupon = await this.couponsService.resolve(
+        cart.couponCode,
+        subtotal,
+      );
+      discountTotal = this.couponsService.computeDiscount(coupon, subtotal);
+      appliedCouponId = coupon.id;
+    }
+
+    const total =
+      Math.round((subtotal + shippingTotal - discountTotal) * 100) / 100;
+    const currency = cart.currency ?? 'inr';
     const shippingAddress = toOrderAddress(dto.shippingAddress);
     const billingAddress = dto.billingAddress
       ? toOrderAddress(dto.billingAddress)
       : shippingAddress;
 
+    const gatewayEnabled = this.config.get<boolean>('payments.gatewayEnabled');
+
     // Order is created (and the cart retired) in its own transaction before
     // ever calling out to Stripe — mirrors Fig. 3 in the analysis doc, so a
-    // Stripe outage never leaves a half-written order row.
+    // Stripe outage never leaves a half-written order row. When the gateway
+    // is disabled, the same transaction also reserves stock and confirms
+    // the order outright, since Cash on Delivery has no later webhook event
+    // to do that for it.
     const order = await this.dataSource.transaction(async (manager) => {
       const created = manager.create(Order, {
         orderNumber: generateOrderNumber(),
@@ -120,7 +166,7 @@ export class CheckoutService {
         subtotal: subtotal.toFixed(2),
         shippingTotal: shippingTotal.toFixed(2),
         taxTotal: '0.00',
-        discountTotal: '0.00',
+        discountTotal: discountTotal.toFixed(2),
         total: total.toFixed(2),
         currency,
         shippingAddress,
@@ -156,10 +202,50 @@ export class CheckoutService {
         }),
       );
 
+      if (appliedCouponId) {
+        await this.couponsService.incrementUsage(appliedCouponId, manager);
+      }
+
+      if (!gatewayEnabled) {
+        await this.decrementStock(manager, orderItems);
+        savedOrder.placedAt = new Date();
+        await manager.save(Order, savedOrder);
+
+        await manager.save(
+          Payment,
+          manager.create(Payment, {
+            orderId: savedOrder.id,
+            provider: 'cod',
+            providerRef: `cod_${savedOrder.orderNumber}`,
+            amount: total.toFixed(2),
+            status: PaymentStatus.REQUIRES_PAYMENT,
+          }),
+        );
+      }
+
       return savedOrder;
     });
 
     await this.cartService.markConverted(cart);
+
+    if (!gatewayEnabled) {
+      // No Stripe webhook will ever fire for this order, so send the
+      // confirmation right away instead of waiting on confirmPaymentSucceeded.
+      await this.mailService.sendOrderConfirmation({
+        to: order.email,
+        orderNumber: order.orderNumber,
+        total,
+        currency,
+      });
+
+      return {
+        orderNumber: order.orderNumber,
+        total,
+        currency,
+        devMode: false,
+        paymentMethod: 'cod',
+      };
+    }
 
     const intent = await this.paymentsService.createPaymentIntent(
       total,
@@ -186,6 +272,7 @@ export class CheckoutService {
       total,
       currency,
       devMode: this.paymentsService.isDevMode,
+      paymentMethod: 'card',
     };
   }
 
@@ -220,16 +307,7 @@ export class CheckoutService {
         where: { orderId: orderRow.id },
       });
 
-      for (const item of orderItems) {
-        if (item.productId) {
-          await manager.decrement(
-            Product,
-            { id: item.productId },
-            'stockQty',
-            item.quantity,
-          );
-        }
-      }
+      await this.decrementStock(manager, orderItems);
 
       orderRow.status = OrderStatus.PAID;
       orderRow.placedAt = new Date();

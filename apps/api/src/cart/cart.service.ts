@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from '../products/entities/product.entity';
+import { CouponsService } from '../coupons/coupons.service';
 import { Cart, CartStatus } from './entities/cart.entity';
 import { CartItem } from './entities/cart-item.entity';
 import { CartResponse, toCartResponse } from './cart.mapper';
@@ -22,6 +23,7 @@ export class CartService {
     private readonly cartItemRepository: Repository<CartItem>,
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
+    private readonly couponsService: CouponsService,
   ) {}
 
   private itemRelations() {
@@ -91,7 +93,39 @@ export class CartService {
       relations: this.itemRelations(),
       order: { createdAt: 'ASC' },
     });
-    return toCartResponse(cart.id, items);
+
+    if (!cart.couponCode) {
+      return toCartResponse(cart.id, items);
+    }
+
+    // Re-validated on every read rather than trusted from storage — a coupon
+    // that expired or hit its usage limit since it was applied should simply
+    // stop discounting, not throw on every GET /cart.
+    const subtotal = toCartResponse(cart.id, items).subtotal;
+    try {
+      const coupon = await this.couponsService.resolve(
+        cart.couponCode,
+        subtotal,
+      );
+      const discount = this.couponsService.computeDiscount(coupon, subtotal);
+      return toCartResponse(cart.id, items, { code: coupon.code, discount });
+    } catch {
+      return toCartResponse(cart.id, items);
+    }
+  }
+
+  /** Validates the code against the current cart subtotal and stores it on the cart. */
+  async applyCoupon(cart: Cart, code: string): Promise<Cart> {
+    const items = await this.loadItemsWithProducts(cart.id);
+    const subtotal = toCartResponse(cart.id, items).subtotal;
+    const coupon = await this.couponsService.resolve(code, subtotal);
+    cart.couponCode = coupon.code;
+    return this.cartRepository.save(cart);
+  }
+
+  async removeCoupon(cart: Cart): Promise<Cart> {
+    cart.couponCode = null;
+    return this.cartRepository.save(cart);
   }
 
   async addItem(

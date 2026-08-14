@@ -39,9 +39,20 @@ export default () => ({
       process.env.STRIPE_WEBHOOK_SECRET ?? 'dev-webhook-secret-change-me',
     publishableKey: process.env.STRIPE_PUBLISHABLE_KEY ?? '',
   },
+  payments: {
+    // Off by default: checkout runs Cash on Delivery only, no Stripe
+    // PaymentIntent is ever created. Set to 'true' to route checkout
+    // through Stripe (or its dev simulator — see PaymentsService).
+    gatewayEnabled: (process.env.PAYMENT_GATEWAY_ENABLED ?? 'false') === 'true',
+  },
   mail: {
     host: process.env.SMTP_HOST ?? 'localhost',
     port: parseInt(process.env.SMTP_PORT ?? '1025', 10),
     from: process.env.MAIL_FROM ?? 'GiftBuddy <orders@giftbuddy.test>',
+  },
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME ?? '',
+    apiKey: process.env.CLOUDINARY_API_KEY ?? '',
+    apiSecret: process.env.CLOUDINARY_API_SECRET ?? '',
   },
 });

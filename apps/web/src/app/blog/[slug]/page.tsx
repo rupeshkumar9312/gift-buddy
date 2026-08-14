@@ -2,12 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { blogPosts, getBlogPostBySlug } from "@/lib/data";
+import { getBlogPost, getBlogPosts } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
-
-export function generateStaticParams() {
-  return blogPosts.map((p) => ({ slug: p.slug }));
-}
 
 export async function generateMetadata({
   params,
@@ -15,16 +11,17 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const post = getBlogPostBySlug(slug);
+  const post = await getBlogPost(slug);
   return { title: post ? `${post.title} — GiftBuddy` : "Blog — GiftBuddy" };
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const post = getBlogPostBySlug(slug);
+  const post = await getBlogPost(slug);
   if (!post) notFound();
 
-  const others = blogPosts.filter((p) => p.slug !== post.slug).slice(0, 3);
+  const allPosts = await getBlogPosts();
+  const others = allPosts.filter((p) => p.slug !== post.slug).slice(0, 3);
 
   return (
     <>
@@ -35,22 +32,27 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
       <article className="container-page py-14">
         <div className="mx-auto max-w-3xl">
-          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-cream">
-            <Image src={post.image} alt={post.title} fill sizes="700px" className="object-cover" priority />
-          </div>
+          {post.coverImage && (
+            <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-cream">
+              <Image src={post.coverImage} alt={post.title} fill sizes="700px" className="object-cover" priority />
+            </div>
+          )}
           <p className="mt-6 text-xs uppercase tracking-wide text-muted">
-            By: {post.author} &nbsp;&middot;&nbsp; Posted on {post.date} &nbsp;&middot;&nbsp; {post.comments} comments
+            By: {post.authorName}
+            {post.publishedAt && (
+              <>
+                {" "}
+                &nbsp;&middot;&nbsp; Posted on{" "}
+                {new Date(post.publishedAt).toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </>
+            )}
           </p>
           <div className="mt-4 flex flex-col gap-4 text-[15px] leading-relaxed text-muted">
             <p>{post.content}</p>
-          </div>
-
-          <div className="mt-10 flex flex-wrap gap-2 border-t border-line pt-6">
-            {["Gifting", "Ideas", "Lifestyle"].map((tag) => (
-              <span key={tag} className="rounded-full bg-cream px-3 py-1 text-xs text-muted">
-                {tag}
-              </span>
-            ))}
           </div>
         </div>
       </article>
@@ -62,13 +64,15 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             {others.map((p) => (
               <Link key={p.slug} href={`/blog/${p.slug}`} className="group flex flex-col">
                 <div className="relative aspect-[3/2] w-full overflow-hidden rounded-2xl bg-cream">
-                  <Image
-                    src={p.image}
-                    alt={p.title}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
+                  {p.coverImage && (
+                    <Image
+                      src={p.coverImage}
+                      alt={p.title}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  )}
                 </div>
                 <h3 className="mt-3 text-base font-medium leading-snug text-ink transition group-hover:text-primary">
                   {p.title}

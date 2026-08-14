@@ -5,6 +5,7 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -39,5 +40,11 @@ export class AdminOrdersController {
     @Body() dto: UpdateOrderStatusDto,
   ) {
     return this.adminOrdersService.updateStatus(id, dto);
+  }
+
+  @Post(':id/mark-cod-collected')
+  @RequirePermissions('orders.write')
+  markCodCollected(@Param('id', ParseIntPipe) id: number) {
+    return this.adminOrdersService.markCodPaymentCollected(id);
   }
 }

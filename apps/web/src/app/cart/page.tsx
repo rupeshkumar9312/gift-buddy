@@ -2,12 +2,44 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { PageBanner } from "@/components/PageBanner";
 import { useCart } from "@/context/CartContext";
+import { formatMoney } from "@/lib/format";
 
 export default function CartPage() {
-  const { lines, removeFromCart, updateQuantity, subtotal } = useCart();
+  const {
+    lines,
+    removeFromCart,
+    updateQuantity,
+    subtotal,
+    discountTotal,
+    couponCode,
+    applyCoupon,
+    removeCoupon,
+  } = useCart();
+  const [couponInput, setCouponInput] = useState("");
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
+
+  const handleApplyCoupon = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!couponInput.trim()) return;
+    setCouponError(null);
+    setApplying(true);
+    try {
+      await applyCoupon(couponInput.trim());
+      setCouponInput("");
+    } catch (err) {
+      setCouponError(err instanceof Error ? err.message : "Couldn't apply that coupon.");
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const shippingCost = subtotal >= 99 ? 0 : 8;
+  const total = Math.max(0, subtotal + shippingCost - discountTotal);
 
   return (
     <>
@@ -58,7 +90,7 @@ export default function CartPage() {
                           {line.name}
                         </Link>
                       </div>
-                      <span className="text-sm text-muted">${price.toFixed(2)}</span>
+                      <span className="text-sm text-muted">{formatMoney(price)}</span>
                       <div className="flex items-center rounded-full border border-line w-fit">
                         <button
                           onClick={() => updateQuantity(line.productId, line.quantity - 1)}
@@ -76,7 +108,7 @@ export default function CartPage() {
                           <Plus size={12} />
                         </button>
                       </div>
-                      <span className="text-sm font-medium text-ink">${line.lineTotal.toFixed(2)}</span>
+                      <span className="text-sm font-medium text-ink">{formatMoney(line.lineTotal)}</span>
                       <button
                         onClick={() => removeFromCart(line.productId)}
                         aria-label="Remove item"
@@ -96,19 +128,40 @@ export default function CartPage() {
                 >
                   Continue Shopping
                 </Link>
-                <form className="flex gap-2" onSubmit={(e) => e.preventDefault()}>
-                  <input
-                    type="text"
-                    placeholder="Coupon code"
-                    className="rounded-full border border-line px-4 py-2.5 text-sm outline-none focus:border-primary"
-                  />
-                  <button
-                    type="submit"
-                    className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary"
-                  >
-                    Apply
-                  </button>
-                </form>
+                <div className="flex flex-col items-end gap-2">
+                  {couponCode ? (
+                    <div className="flex items-center gap-2 rounded-full bg-cream px-4 py-2.5 text-sm">
+                      <span className="font-medium text-ink">{couponCode}</span>
+                      <span className="text-muted">applied</span>
+                      <button
+                        type="button"
+                        onClick={() => removeCoupon()}
+                        aria-label="Remove coupon"
+                        className="text-muted transition hover:text-primary"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <form className="flex gap-2" onSubmit={handleApplyCoupon}>
+                      <input
+                        type="text"
+                        placeholder="Coupon code"
+                        value={couponInput}
+                        onChange={(e) => setCouponInput(e.target.value)}
+                        className="rounded-full border border-line px-4 py-2.5 text-sm outline-none focus:border-primary"
+                      />
+                      <button
+                        type="submit"
+                        disabled={applying}
+                        className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {applying ? "Applying..." : "Apply"}
+                      </button>
+                    </form>
+                  )}
+                  {couponError && <p className="text-xs text-red-500">{couponError}</p>}
+                </div>
               </div>
             </div>
 
@@ -117,15 +170,21 @@ export default function CartPage() {
               <div className="mt-5 flex flex-col gap-3 text-sm">
                 <div className="flex justify-between text-muted">
                   <span>Subtotal</span>
-                  <span className="text-ink">${subtotal.toFixed(2)}</span>
+                  <span className="text-ink">{formatMoney(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-muted">
                   <span>Shipping</span>
-                  <span className="text-ink">{subtotal >= 99 ? "Free" : "$8.00"}</span>
+                  <span className="text-ink">{shippingCost === 0 ? "Free" : formatMoney(shippingCost)}</span>
                 </div>
+                {discountTotal > 0 && (
+                  <div className="flex justify-between text-muted">
+                    <span>Discount{couponCode ? ` (${couponCode})` : ""}</span>
+                    <span className="text-primary">-{formatMoney(discountTotal)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between border-t border-line pt-3 text-base font-semibold text-ink">
                   <span>Total</span>
-                  <span>${(subtotal >= 99 ? subtotal : subtotal + 8).toFixed(2)}</span>
+                  <span>{formatMoney(total)}</span>
                 </div>
               </div>
               <Link

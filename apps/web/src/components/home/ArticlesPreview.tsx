@@ -1,10 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { blogPosts } from "@/lib/data";
+import { getBlogPosts } from "@/lib/api";
 import { SectionHeading } from "@/components/SectionHeading";
 
-export function ArticlesPreview() {
-  const posts = blogPosts.slice(0, 3);
+export async function ArticlesPreview() {
+  const posts = (await getBlogPosts()).slice(0, 3);
+  if (posts.length === 0) return null;
 
   return (
     <section className="container-page py-16">
@@ -13,16 +14,29 @@ export function ArticlesPreview() {
         {posts.map((post) => (
           <Link key={post.slug} href={`/blog/${post.slug}`} className="group flex flex-col">
             <div className="relative aspect-[3/2] w-full overflow-hidden rounded-2xl bg-cream">
-              <Image
-                src={post.image}
-                alt={post.title}
-                fill
-                sizes="(max-width: 768px) 100vw, 33vw"
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-              />
+              {post.coverImage && (
+                <Image
+                  src={post.coverImage}
+                  alt={post.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              )}
             </div>
             <p className="mt-4 text-xs uppercase tracking-wide text-muted">
-              By: {post.author} &nbsp;&middot;&nbsp; {post.date}
+              By: {post.authorName}
+              {post.publishedAt && (
+                <>
+                  {" "}
+                  &nbsp;&middot;&nbsp;{" "}
+                  {new Date(post.publishedAt).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </>
+              )}
             </p>
             <h3 className="mt-1.5 text-lg font-medium leading-snug text-ink transition group-hover:text-primary">
               {post.title}

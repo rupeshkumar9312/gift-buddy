@@ -153,28 +153,52 @@ export type Cart = {
   items: CartItem[];
   subtotal: number;
   itemCount: number;
+  couponCode: string | null;
+  discountTotal: number;
+  total: number;
 };
 
-export async function getCart(): Promise<Cart> {
-  return apiFetch<Cart>("/cart");
+// A logged-in user's cart lives behind their account (userId), not the guest
+// cookie — every cart call needs the access token when one's available, or
+// operations silently drift onto a throwaway guest cart instead of the
+// user's real one (see the merge-on-login note in CartContext).
+function authHeader(accessToken?: string | null): HeadersInit | undefined {
+  return accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
 }
 
-export async function addCartItem(productId: number, quantity = 1): Promise<Cart> {
+export async function getCart(accessToken?: string | null): Promise<Cart> {
+  return apiFetch<Cart>("/cart", { headers: authHeader(accessToken) });
+}
+
+export async function addCartItem(
+  productId: number,
+  quantity = 1,
+  accessToken?: string | null
+): Promise<Cart> {
   return apiFetch<Cart>("/cart/items", {
     method: "POST",
+    headers: authHeader(accessToken),
     body: JSON.stringify({ productId, quantity }),
   });
 }
 
-export async function updateCartItem(productId: number, quantity: number): Promise<Cart> {
+export async function updateCartItem(
+  productId: number,
+  quantity: number,
+  accessToken?: string | null
+): Promise<Cart> {
   return apiFetch<Cart>(`/cart/items/${productId}`, {
     method: "PATCH",
+    headers: authHeader(accessToken),
     body: JSON.stringify({ quantity }),
   });
 }
 
-export async function removeCartItem(productId: number): Promise<Cart> {
-  return apiFetch<Cart>(`/cart/items/${productId}`, { method: "DELETE" });
+export async function removeCartItem(productId: number, accessToken?: string | null): Promise<Cart> {
+  return apiFetch<Cart>(`/cart/items/${productId}`, {
+    method: "DELETE",
+    headers: authHeader(accessToken),
+  });
 }
 
 // ---- Shipping ----
@@ -188,6 +212,10 @@ export type ShippingMethod = {
 
 export async function getShippingMethods(): Promise<ShippingMethod[]> {
   return apiFetch<ShippingMethod[]>("/shipping-methods");
+}
+
+export async function getCheckoutConfig(): Promise<{ gatewayEnabled: boolean }> {
+  return apiFetch<{ gatewayEnabled: boolean }>("/checkout/config");
 }
 
 // ---- Checkout ----
@@ -213,16 +241,18 @@ export type CheckoutInput = {
 
 export type CheckoutResult = {
   orderNumber: string;
-  clientSecret: string;
+  clientSecret: string | null;
   total: number;
   currency: string;
   devMode: boolean;
+  paymentMethod: "card" | "cod";
   publishableKey: string | null;
 };
 
-export async function checkout(input: CheckoutInput): Promise<CheckoutResult> {
+export async function checkout(input: CheckoutInput, accessToken?: string | null): Promise<CheckoutResult> {
   return apiFetch<CheckoutResult>("/checkout", {
     method: "POST",
+    headers: authHeader(accessToken),
     body: JSON.stringify(input),
   });
 }
@@ -289,5 +319,164 @@ export async function trackOrder(orderNumber: string, email: string): Promise<Or
   return apiFetch<OrderDetail>("/orders/track", {
     method: "POST",
     body: JSON.stringify({ orderNumber, email }),
+  });
+}
+
+export async function cancelOrder(
+  orderNumber: string,
+  options: { accessToken?: string; email?: string }
+): Promise<OrderDetail> {
+  return apiFetch<OrderDetail>(`/orders/${orderNumber}/cancel`, {
+    method: "POST",
+    headers: authHeader(options.accessToken),
+    body: JSON.stringify({ email: options.email }),
+  });
+}
+
+// ---- Coupons (cart) ----
+
+export async function applyCoupon(code: string, accessToken?: string | null): Promise<Cart> {
+  return apiFetch<Cart>("/cart/coupon", {
+    method: "POST",
+    headers: authHeader(accessToken),
+    body: JSON.stringify({ code }),
+  });
+}
+
+export async function removeCoupon(accessToken?: string | null): Promise<Cart> {
+  return apiFetch<Cart>("/cart/coupon", { method: "DELETE", headers: authHeader(accessToken) });
+}
+
+// ---- Reviews ----
+
+export type Review = {
+  id: number;
+  rating: number;
+  title: string;
+  body: string;
+  authorName: string;
+  createdAt: string;
+};
+
+export type FeaturedReview = Review & {
+  productName: string;
+  productSlug: string;
+};
+
+export async function getProductReviews(
+  slug: string,
+  page = 1
+): Promise<Paginated<Review>> {
+  return apiFetch<Paginated<Review>>(`/products/${slug}/reviews?page=${page}`);
+}
+
+export async function getFeaturedReviews(limit = 6): Promise<FeaturedReview[]> {
+  return apiFetch<FeaturedReview[]>(`/reviews/featured?limit=${limit}`);
+}
+
+export async function submitReview(
+  slug: string,
+  accessToken: string,
+  input: { rating: number; title: string; body: string }
+): Promise<Review> {
+  return apiFetch<Review>(`/products/${slug}/reviews`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(input),
+  });
+}
+
+// ---- Wishlist ----
+
+export type WishlistItem = {
+  productId: number;
+  slug: string;
+  name: string;
+  image: string | null;
+  price: number;
+  salePrice: number | null;
+  inStock: boolean;
+  addedAt: string;
+};
+
+export async function getWishlist(accessToken: string): Promise<WishlistItem[]> {
+  return apiFetch<WishlistItem[]>("/wishlist", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export async function addWishlistItem(
+  accessToken: string,
+  productId: number
+): Promise<WishlistItem[]> {
+  return apiFetch<WishlistItem[]>(`/wishlist/items/${productId}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export async function removeWishlistItem(
+  accessToken: string,
+  productId: number
+): Promise<WishlistItem[]> {
+  return apiFetch<WishlistItem[]>(`/wishlist/items/${productId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+// ---- Blog ----
+
+export type BlogPostSummary = {
+  slug: string;
+  title: string;
+  excerpt: string;
+  coverImage: string | null;
+  authorName: string;
+  publishedAt: string | null;
+};
+
+export type BlogPostDetail = BlogPostSummary & { content: string };
+
+export async function getBlogPosts(): Promise<BlogPostSummary[]> {
+  const result = await apiFetch<Paginated<BlogPostSummary>>("/blog?limit=50");
+  return result.data;
+}
+
+export async function getBlogPost(slug: string): Promise<BlogPostDetail | null> {
+  try {
+    return await apiFetch<BlogPostDetail>(`/blog/${slug}`);
+  } catch {
+    return null;
+  }
+}
+
+// ---- FAQs ----
+
+export type FaqItem = { id: number; question: string; answer: string };
+export type GroupedFaqs = { shipping: FaqItem[]; returns: FaqItem[]; orders: FaqItem[] };
+
+export async function getFaqs(): Promise<GroupedFaqs> {
+  return apiFetch<GroupedFaqs>("/faqs");
+}
+
+// ---- Contact & newsletter ----
+
+export async function submitContact(input: {
+  name: string;
+  email: string;
+  subject?: string;
+  message: string;
+}): Promise<{ received: true }> {
+  return apiFetch<{ received: true }>("/contact", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function subscribeNewsletter(email: string): Promise<{ subscribed: true }> {
+  return apiFetch<{ subscribed: true }>("/newsletter", {
+    method: "POST",
+    body: JSON.stringify({ email }),
   });
 }

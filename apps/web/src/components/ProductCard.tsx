@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Eye, Heart, ShoppingBag } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { useCart } from "@/context/CartContext";
+import { formatMoney } from "@/lib/format";
 import { StarRating } from "./StarRating";
 
 const badgeStyles: Record<NonNullable<Product["badge"]>, string> = {
@@ -21,7 +22,7 @@ const badgeLabel: Record<NonNullable<Product["badge"]>, string> = {
 
 export function ProductCard({ product }: { product: Product }) {
   const { addToCart, toggleWishlist, isWishlisted } = useCart();
-  const wishlisted = isWishlisted(product.slug);
+  const wishlisted = isWishlisted(product.id);
 
   return (
     <div className="group relative flex flex-col">
@@ -93,11 +94,11 @@ export function ProductCard({ product }: { product: Product }) {
         <div className="flex items-center gap-2 text-sm">
           {product.salePrice ? (
             <>
-              <span className="font-semibold text-primary">${product.salePrice.toFixed(2)}</span>
-              <span className="text-muted line-through">${product.price.toFixed(2)}</span>
+              <span className="font-semibold text-primary">{formatMoney(product.salePrice)}</span>
+              <span className="text-muted line-through">{formatMoney(product.price)}</span>
             </>
           ) : (
-            <span className="font-semibold text-ink">${product.price.toFixed(2)}</span>
+            <span className="font-semibold text-ink">{formatMoney(product.price)}</span>
           )}
         </div>
       </div>

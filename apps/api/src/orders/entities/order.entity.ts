@@ -73,7 +73,7 @@ export class Order {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   total: string;
 
-  @Column({ type: 'varchar', length: 3, default: 'usd' })
+  @Column({ type: 'varchar', length: 3, default: 'inr' })
   currency: string;
 
   // Snapshotted at checkout rather than an FK to `addresses`, since guest

@@ -6,6 +6,7 @@ import { PackageSearch } from "lucide-react";
 import { PageBanner } from "@/components/PageBanner";
 import { useAuth } from "@/context/AuthContext";
 import { getOrders, type OrderSummary } from "@/lib/api";
+import { formatMoney } from "@/lib/format";
 
 const STATUS_LABEL: Record<string, string> = {
   pending_payment: "Pending Payment",
@@ -89,7 +90,7 @@ export default function OrderHistoryPage() {
                     <td className="py-4 text-muted">{STATUS_LABEL[order.status] ?? order.status}</td>
                     <td className="py-4 text-muted">{order.itemCount}</td>
                     <td className="py-4 text-right font-medium text-ink">
-                      ${order.total.toFixed(2)} {order.currency.toUpperCase()}
+                      {formatMoney(order.total, order.currency)}
                     </td>
                   </tr>
                 ))}

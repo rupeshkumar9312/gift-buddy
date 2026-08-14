@@ -6,6 +6,8 @@ import { Heart, Minus, Plus, RefreshCcw, ShieldCheck, ShoppingBag, Truck } from 
 import type { Product } from "@/lib/types";
 import { StarRating } from "@/components/StarRating";
 import { useCart } from "@/context/CartContext";
+import { formatMoney } from "@/lib/format";
+import { ProductReviews } from "./ProductReviews";
 
 type Tab = "description" | "info" | "reviews";
 
@@ -14,7 +16,7 @@ export function ProductDetailClient({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
   const [tab, setTab] = useState<Tab>("description");
   const { addToCart, toggleWishlist, isWishlisted } = useCart();
-  const wishlisted = isWishlisted(product.slug);
+  const wishlisted = isWishlisted(product.id);
 
   return (
     <div className="container-page py-14">
@@ -68,11 +70,11 @@ export function ProductDetailClient({ product }: { product: Product }) {
           <div className="mt-5 flex items-center gap-3">
             {product.salePrice ? (
               <>
-                <span className="text-2xl font-semibold text-primary">${product.salePrice.toFixed(2)}</span>
-                <span className="text-lg text-muted line-through">${product.price.toFixed(2)}</span>
+                <span className="text-2xl font-semibold text-primary">{formatMoney(product.salePrice)}</span>
+                <span className="text-lg text-muted line-through">{formatMoney(product.price)}</span>
               </>
             ) : (
-              <span className="text-2xl font-semibold text-ink">${product.price.toFixed(2)}</span>
+              <span className="text-2xl font-semibold text-ink">{formatMoney(product.price)}</span>
             )}
           </div>
 
@@ -127,7 +129,7 @@ export function ProductDetailClient({ product }: { product: Product }) {
 
           <div className="mt-8 grid grid-cols-1 gap-3 border-t border-line pt-6 sm:grid-cols-3">
             <div className="flex items-center gap-2.5 text-sm text-muted">
-              <Truck size={17} className="text-primary" /> Free shipping over $99
+              <Truck size={17} className="text-primary" /> Free shipping over {formatMoney(99)}
             </div>
             <div className="flex items-center gap-2.5 text-sm text-muted">
               <RefreshCcw size={17} className="text-primary" /> 30-day easy returns
@@ -182,13 +184,7 @@ export function ProductDetailClient({ product }: { product: Product }) {
             </table>
           )}
           {tab === "reviews" && (
-            <div className="flex flex-col gap-6">
-              <div className="flex items-center gap-3">
-                <StarRating rating={product.rating} size={16} />
-                <span className="text-ink">{product.rating.toFixed(2)} out of 5</span>
-              </div>
-              <p>No written reviews yet — be the first to share your thoughts on this gift.</p>
-            </div>
+            <ProductReviews slug={product.slug} ratingAvg={product.rating} ratingCount={product.reviews} />
           )}
         </div>
       </div>

@@ -6,6 +6,7 @@ import { CheckCircle2 } from "lucide-react";
 import { PageBanner } from "@/components/PageBanner";
 import { useAuth } from "@/context/AuthContext";
 import { getOrder, type OrderDetail } from "@/lib/api";
+import { formatMoney } from "@/lib/format";
 
 export default function CheckoutSuccessPage({
   params,
@@ -50,15 +51,13 @@ export default function CheckoutSuccessPage({
                     <span className="text-muted">
                       {item.productName} × {item.quantity}
                     </span>
-                    <span className="text-ink">${item.lineTotal.toFixed(2)}</span>
+                    <span className="text-ink">{formatMoney(item.lineTotal)}</span>
                   </li>
                 ))}
               </ul>
               <div className="mt-3 flex justify-between border-t border-line pt-3 font-semibold">
                 <span>Total</span>
-                <span>
-                  ${order.total.toFixed(2)} {order.currency.toUpperCase()}
-                </span>
+                <span>{formatMoney(order.total, order.currency)}</span>
               </div>
             </div>
           )}

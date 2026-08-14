@@ -9,6 +9,7 @@ import type { Category, Product } from "@/lib/types";
 import { ProductCard } from "@/components/ProductCard";
 import { StarRating } from "@/components/StarRating";
 import { useCart } from "@/context/CartContext";
+import { formatMoney } from "@/lib/format";
 
 type SortKey = "featured" | "price-asc" | "price-desc" | "name";
 
@@ -103,8 +104,8 @@ export function ShopPageClient({
           className="w-full accent-[#be7374]"
         />
         <div className="mt-2 flex justify-between text-sm text-muted">
-          <span>$10</span>
-          <span className="font-medium text-ink">${maxPrice}</span>
+          <span>{formatMoney(10)}</span>
+          <span className="font-medium text-ink">{formatMoney(maxPrice)}</span>
         </div>
       </div>
 
@@ -230,11 +231,11 @@ export function ShopPageClient({
                       <div className="flex items-center gap-2 text-sm">
                         {product.salePrice ? (
                           <>
-                            <span className="font-semibold text-primary">${product.salePrice.toFixed(2)}</span>
-                            <span className="text-muted line-through">${product.price.toFixed(2)}</span>
+                            <span className="font-semibold text-primary">{formatMoney(product.salePrice)}</span>
+                            <span className="text-muted line-through">{formatMoney(product.price)}</span>
                           </>
                         ) : (
-                          <span className="font-semibold text-ink">${product.price.toFixed(2)}</span>
+                          <span className="font-semibold text-ink">{formatMoney(product.price)}</span>
                         )}
                       </div>
                       <button

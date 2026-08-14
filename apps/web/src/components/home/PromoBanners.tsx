@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { formatMoney } from "@/lib/format";
 
 export function PromoBanners() {
   return (
@@ -15,7 +16,7 @@ export function PromoBanners() {
         <div className="relative z-10 mx-8 rounded-2xl bg-white/90 p-6 backdrop-blur-sm sm:mx-10">
           <p className="font-script text-2xl text-primary">New Arrivals</p>
           <h3 className="mt-1 text-2xl font-medium text-ink">Send Your Love</h3>
-          <p className="mt-1 text-sm text-muted">from $29.90</p>
+          <p className="mt-1 text-sm text-muted">from {formatMoney(29.9)}</p>
           <Link
             href="/shop"
             className="mt-4 inline-block rounded-full bg-ink px-6 py-2.5 text-xs font-medium uppercase tracking-wide text-white transition hover:bg-primary"
@@ -36,7 +37,7 @@ export function PromoBanners() {
         <div className="relative z-10 mx-8 rounded-2xl bg-white/90 p-6 backdrop-blur-sm sm:mx-10">
           <p className="font-script text-2xl text-primary">Stationery</p>
           <h3 className="mt-1 text-2xl font-medium text-ink">Office &amp; Stationery</h3>
-          <p className="mt-1 text-sm text-muted">from $2.90</p>
+          <p className="mt-1 text-sm text-muted">from {formatMoney(2.9)}</p>
           <Link
             href="/shop?category=office-stationery"
             className="mt-4 inline-block rounded-full bg-ink px-6 py-2.5 text-xs font-medium uppercase tracking-wide text-white transition hover:bg-primary"

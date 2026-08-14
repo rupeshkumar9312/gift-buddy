@@ -77,6 +77,12 @@ class EnvironmentVariables {
   @IsOptional()
   STRIPE_PUBLISHABLE_KEY: string = '';
 
+  // Optional: 'true' routes checkout through Stripe (or its dev simulator);
+  // anything else, including unset, means Cash on Delivery only.
+  @IsString()
+  @IsOptional()
+  PAYMENT_GATEWAY_ENABLED: string = 'false';
+
   @IsString()
   @IsOptional()
   SMTP_HOST: string = 'localhost';
@@ -88,6 +94,20 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   MAIL_FROM: string = 'GiftBuddy <orders@giftbuddy.test>';
+
+  // Optional: when unset, the admin media upload endpoint responds with a
+  // clear "not configured" error instead of the app failing to boot.
+  @IsString()
+  @IsOptional()
+  CLOUDINARY_CLOUD_NAME: string = '';
+
+  @IsString()
+  @IsOptional()
+  CLOUDINARY_API_KEY: string = '';
+
+  @IsString()
+  @IsOptional()
+  CLOUDINARY_API_SECRET: string = '';
 }
 
 export function validate(config: Record<string, unknown>) {

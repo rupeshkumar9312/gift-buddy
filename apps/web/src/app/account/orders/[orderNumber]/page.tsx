@@ -5,7 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { PageBanner } from "@/components/PageBanner";
 import { useAuth } from "@/context/AuthContext";
-import { getOrder, type OrderDetail } from "@/lib/api";
+import { cancelOrder, getOrder, type OrderDetail } from "@/lib/api";
+import { formatMoney } from "@/lib/format";
 
 const STATUS_LABEL: Record<string, string> = {
   pending_payment: "Pending Payment",
@@ -16,6 +17,8 @@ const STATUS_LABEL: Record<string, string> = {
   refunded: "Refunded",
 };
 
+const CANCELLABLE_STATUSES = ["pending_payment", "paid"];
+
 export default function OrderDetailPage({
   params,
 }: {
@@ -25,6 +28,9 @@ export default function OrderDetailPage({
   const { accessToken, isLoading: authLoading } = useAuth();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [error, setError] = useState(false);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -32,6 +38,21 @@ export default function OrderDetailPage({
       .then(setOrder)
       .catch(() => setError(true));
   }, [accessToken, orderNumber]);
+
+  const handleCancel = async () => {
+    if (!accessToken) return;
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      const updated = await cancelOrder(orderNumber, { accessToken });
+      setOrder(updated);
+      setConfirmingCancel(false);
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : "Couldn't cancel your order.");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   return (
     <>
@@ -65,6 +86,39 @@ export default function OrderDetailPage({
                     {STATUS_LABEL[order.status] ?? order.status}
                   </span>
                 </div>
+
+                {CANCELLABLE_STATUSES.includes(order.status) && (
+                  <div className="border-b border-line py-4">
+                    {cancelError && <p className="mb-3 text-sm text-primary">{cancelError}</p>}
+                    {confirmingCancel ? (
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-sm text-muted">Cancel this order? This can&rsquo;t be undone.</span>
+                        <button
+                          onClick={handleCancel}
+                          disabled={cancelling}
+                          className="rounded-full bg-primary px-5 py-2 text-xs font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:opacity-60"
+                        >
+                          {cancelling ? "Cancelling…" : "Yes, cancel order"}
+                        </button>
+                        <button
+                          onClick={() => setConfirmingCancel(false)}
+                          disabled={cancelling}
+                          className="text-xs font-medium uppercase tracking-wide text-muted hover:text-ink"
+                        >
+                          Never mind
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmingCancel(true)}
+                        className="rounded-full border border-line px-5 py-2 text-xs font-medium uppercase tracking-wide text-ink transition hover:border-primary hover:text-primary"
+                      >
+                        Cancel Order
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 <ul className="mt-4 flex flex-col gap-4">
                   {order.items.map((item) => (
                     <li key={item.sku} className="flex items-center gap-4">
@@ -76,10 +130,10 @@ export default function OrderDetailPage({
                       <div className="flex-1 text-sm">
                         <p className="font-medium text-ink">{item.productName}</p>
                         <p className="text-muted">
-                          Qty {item.quantity} · ${item.unitPrice.toFixed(2)} each
+                          Qty {item.quantity} · {formatMoney(item.unitPrice)} each
                         </p>
                       </div>
-                      <span className="text-sm font-medium text-ink">${item.lineTotal.toFixed(2)}</span>
+                      <span className="text-sm font-medium text-ink">{formatMoney(item.lineTotal)}</span>
                     </li>
                   ))}
                 </ul>
@@ -114,17 +168,15 @@ export default function OrderDetailPage({
               <div className="mt-6 flex flex-col gap-2 border-t border-line pt-4">
                 <div className="flex justify-between text-muted">
                   <span>Subtotal</span>
-                  <span className="text-ink">${order.subtotal.toFixed(2)}</span>
+                  <span className="text-ink">{formatMoney(order.subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-muted">
                   <span>Shipping ({order.shippingMethodName})</span>
-                  <span className="text-ink">${order.shippingTotal.toFixed(2)}</span>
+                  <span className="text-ink">{formatMoney(order.shippingTotal)}</span>
                 </div>
                 <div className="flex justify-between border-t border-line pt-2 text-base font-semibold text-ink">
                   <span>Total</span>
-                  <span>
-                    ${order.total.toFixed(2)} {order.currency.toUpperCase()}
-                  </span>
+                  <span>{formatMoney(order.total, order.currency)}</span>
                 </div>
               </div>
             </aside>

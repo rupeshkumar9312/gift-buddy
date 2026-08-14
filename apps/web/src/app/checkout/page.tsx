@@ -10,10 +10,12 @@ import { useAuth } from "@/context/AuthContext";
 import {
   checkout,
   devConfirmPayment,
+  getCheckoutConfig,
   getShippingMethods,
   type CheckoutResult,
   type ShippingMethod,
 } from "@/lib/api";
+import { formatMoney } from "@/lib/format";
 import { StripePaymentForm } from "./StripePaymentForm";
 
 const inputClass =
@@ -46,8 +48,8 @@ const EMPTY_FORM: FormState = {
 };
 
 export default function CheckoutPage() {
-  const { lines, subtotal, refreshCart } = useCart();
-  const { user } = useAuth();
+  const { lines, subtotal, discountTotal, couponCode, refreshCart } = useCart();
+  const { user, accessToken } = useAuth();
   const router = useRouter();
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -57,6 +59,7 @@ export default function CheckoutPage() {
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CheckoutResult | null>(null);
+  const [gatewayEnabled, setGatewayEnabled] = useState(true);
 
   useEffect(() => {
     getShippingMethods()
@@ -64,6 +67,9 @@ export default function CheckoutPage() {
         setShippingMethods(methods);
         setShippingMethodId(methods[0]?.id ?? null);
       })
+      .catch(() => undefined);
+    getCheckoutConfig()
+      .then((config) => setGatewayEnabled(config.gatewayEnabled))
       .catch(() => undefined);
   }, []);
 
@@ -85,7 +91,7 @@ export default function CheckoutPage() {
       ? 0
       : selectedShipping.price
     : 0;
-  const estimatedTotal = subtotal + shippingCost;
+  const estimatedTotal = Math.max(0, subtotal + shippingCost - discountTotal);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -107,7 +113,12 @@ export default function CheckoutPage() {
           phone: form.phone || undefined,
         },
         shippingMethodId,
-      });
+      }, accessToken);
+      if (res.paymentMethod === "cod") {
+        await refreshCart();
+        router.push(`/checkout/success/${res.orderNumber}`);
+        return;
+      }
       setResult(res);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start checkout. Please try again.");
@@ -259,7 +270,7 @@ export default function CheckoutPage() {
                           <span className="text-muted">
                             {method.freeOverAmount !== null && subtotal >= method.freeOverAmount
                               ? "Free"
-                              : `$${method.price.toFixed(2)}`}
+                              : formatMoney(method.price)}
                           </span>
                         </label>
                       ))}
@@ -278,7 +289,11 @@ export default function CheckoutPage() {
                   disabled={submitting || !shippingMethodId}
                   className="w-full rounded-full bg-primary py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {submitting ? "Starting checkout…" : "Continue to Payment"}
+                  {submitting
+                    ? "Placing order…"
+                    : gatewayEnabled
+                      ? "Continue to Payment"
+                      : "Place Order (Pay on Delivery)"}
                 </button>
               </form>
             ) : (
@@ -286,9 +301,7 @@ export default function CheckoutPage() {
                 <h2 className="text-lg font-medium">Payment</h2>
                 <p className="mt-2 text-sm text-muted">
                   Order <span className="font-medium text-ink">{result.orderNumber}</span> — charging{" "}
-                  <span className="font-medium text-ink">
-                    ${result.total.toFixed(2)} {result.currency.toUpperCase()}
-                  </span>
+                  <span className="font-medium text-ink">{formatMoney(result.total, result.currency)}</span>
                 </p>
 
                 {error && (
@@ -313,7 +326,7 @@ export default function CheckoutPage() {
                         {confirming ? "Confirming…" : "Simulate Payment (Dev Mode)"}
                       </button>
                     </div>
-                  ) : result.publishableKey ? (
+                  ) : result.publishableKey && result.clientSecret ? (
                     <StripePaymentForm
                       publishableKey={result.publishableKey}
                       clientSecret={result.clientSecret}
@@ -345,7 +358,7 @@ export default function CheckoutPage() {
                       <p className="font-medium text-ink">{line.name}</p>
                       <p className="text-muted">Qty {line.quantity}</p>
                     </div>
-                    <span className="text-sm font-medium">${line.lineTotal.toFixed(2)}</span>
+                    <span className="text-sm font-medium">{formatMoney(line.lineTotal)}</span>
                   </li>
                 ))
               )}
@@ -354,15 +367,21 @@ export default function CheckoutPage() {
             <div className="mt-6 flex flex-col gap-3 border-t border-line pt-5 text-sm">
               <div className="flex justify-between text-muted">
                 <span>Subtotal</span>
-                <span className="text-ink">${subtotal.toFixed(2)}</span>
+                <span className="text-ink">{formatMoney(subtotal)}</span>
               </div>
               <div className="flex justify-between text-muted">
                 <span>Shipping</span>
-                <span className="text-ink">{shippingCost === 0 ? "Free" : `$${shippingCost.toFixed(2)}`}</span>
+                <span className="text-ink">{shippingCost === 0 ? "Free" : formatMoney(shippingCost)}</span>
               </div>
+              {discountTotal > 0 && (
+                <div className="flex justify-between text-muted">
+                  <span>Discount{couponCode ? ` (${couponCode})` : ""}</span>
+                  <span className="text-primary">-{formatMoney(discountTotal)}</span>
+                </div>
+              )}
               <div className="flex justify-between border-t border-line pt-3 text-base font-semibold text-ink">
                 <span>Total</span>
-                <span>${(result?.total ?? estimatedTotal).toFixed(2)}</span>
+                <span>{formatMoney(result?.total ?? estimatedTotal)}</span>
               </div>
             </div>
           </aside>
