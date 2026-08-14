@@ -9,6 +9,7 @@ import { PaginatedResponse } from '../../common/dto/paginated-response.dto';
 import { Product } from '../../products/entities/product.entity';
 import { ProductImage } from '../../products/entities/product-image.entity';
 import { MediaAsset } from '../../media/entities/media-asset.entity';
+import { detectMediaProvider } from '../../media/media-provider.util';
 import { AdminProductQueryDto } from './dto/admin-product-query.dto';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -159,7 +160,7 @@ export class AdminProductsService {
       const asset = await this.mediaAssetRepository.save(
         this.mediaAssetRepository.create({
           url: image.url,
-          provider: 'external',
+          provider: detectMediaProvider(image.url),
           altText: image.altText ?? null,
         }),
       );

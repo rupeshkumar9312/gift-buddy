@@ -521,3 +521,27 @@ export async function updateContactMessage(
     body: JSON.stringify({ status }),
   });
 }
+
+// ---- Media upload ----
+
+export type UploadedImage = { url: string; width: number; height: number };
+
+// Not routed through apiFetch — a multipart upload needs the browser to set
+// its own Content-Type with boundary, which apiFetch's hardcoded
+// "application/json" header would clobber.
+export async function uploadImage(accessToken: string, file: File): Promise<UploadedImage> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_BASE}/admin/media/upload`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    credentials: "include",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseErrorMessage(res));
+  }
+  return res.json() as Promise<UploadedImage>;
+}

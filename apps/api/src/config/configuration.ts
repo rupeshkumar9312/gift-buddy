@@ -44,4 +44,9 @@ export default () => ({
     port: parseInt(process.env.SMTP_PORT ?? '1025', 10),
     from: process.env.MAIL_FROM ?? 'GiftBuddy <orders@giftbuddy.test>',
   },
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME ?? '',
+    apiKey: process.env.CLOUDINARY_API_KEY ?? '',
+    apiSecret: process.env.CLOUDINARY_API_SECRET ?? '',
+  },
 });

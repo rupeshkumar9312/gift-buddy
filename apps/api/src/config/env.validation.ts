@@ -88,6 +88,20 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   MAIL_FROM: string = 'GiftBuddy <orders@giftbuddy.test>';
+
+  // Optional: when unset, the admin media upload endpoint responds with a
+  // clear "not configured" error instead of the app failing to boot.
+  @IsString()
+  @IsOptional()
+  CLOUDINARY_CLOUD_NAME: string = '';
+
+  @IsString()
+  @IsOptional()
+  CLOUDINARY_API_KEY: string = '';
+
+  @IsString()
+  @IsOptional()
+  CLOUDINARY_API_SECRET: string = '';
 }
 
 export function validate(config: Record<string, unknown>) {

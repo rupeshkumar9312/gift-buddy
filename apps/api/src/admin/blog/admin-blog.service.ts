@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MediaAsset } from '../../media/entities/media-asset.entity';
+import { detectMediaProvider } from '../../media/media-provider.util';
 import {
   BlogPost,
   BlogPostStatus,
@@ -90,7 +91,10 @@ export class AdminBlogService {
   private async resolveCoverAssetId(url?: string): Promise<number | null> {
     if (!url) return null;
     const asset = await this.mediaAssetRepository.save(
-      this.mediaAssetRepository.create({ url, provider: 'external' }),
+      this.mediaAssetRepository.create({
+        url,
+        provider: detectMediaProvider(url),
+      }),
     );
     return asset.id;
   }

@@ -29,6 +29,7 @@ import { AdminReviewsModule } from './admin/reviews/admin-reviews.module';
 import { AdminBlogModule } from './admin/blog/admin-blog.module';
 import { AdminFaqsModule } from './admin/faqs/admin-faqs.module';
 import { AdminContactMessagesModule } from './admin/contact-messages/admin-contact-messages.module';
+import { AdminMediaModule } from './admin/media/admin-media.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -67,6 +68,7 @@ import { AppService } from './app.service';
     AdminBlogModule,
     AdminFaqsModule,
     AdminContactMessagesModule,
+    AdminMediaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

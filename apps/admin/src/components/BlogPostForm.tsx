@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { AdminBlogPost, BlogPostInput } from "@/lib/api";
+import { useAdminAuth } from "@/context/AdminAuthContext";
+import { ImageUploadField } from "./ImageUploadField";
 
 const inputClass =
   "w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm outline-none focus:border-primary";
@@ -26,6 +28,7 @@ export function BlogPostForm({
   onSubmit: (input: BlogPostInput) => Promise<void>;
   submitLabel: string;
 }) {
+  const { accessToken } = useAdminAuth();
   const [form, setForm] = useState(toFormState(initial));
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -88,11 +91,19 @@ export function BlogPostForm({
         </Field>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Cover image URL">
-            <input
-              value={form.coverImageUrl ?? ""}
-              onChange={(e) => setForm({ ...form, coverImageUrl: e.target.value })}
-              className={inputClass}
-            />
+            <div className="flex items-center gap-2">
+              <input
+                value={form.coverImageUrl ?? ""}
+                onChange={(e) => setForm({ ...form, coverImageUrl: e.target.value })}
+                className={inputClass}
+              />
+              {accessToken && (
+                <ImageUploadField
+                  accessToken={accessToken}
+                  onUploaded={(url) => setForm((f) => ({ ...f, coverImageUrl: url }))}
+                />
+              )}
+            </div>
           </Field>
           <Field label="Status">
             <select

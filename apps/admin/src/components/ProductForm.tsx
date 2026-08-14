@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Minus, Plus, X } from "lucide-react";
 import type { AdminCategory, AdminProductDetail, ProductInput } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
+import { useAdminAuth } from "@/context/AdminAuthContext";
+import { ImageUploadField } from "./ImageUploadField";
 
 const inputClass =
   "w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm outline-none focus:border-primary";
@@ -36,6 +38,7 @@ export function ProductForm({
   onSubmit: (input: ProductInput) => Promise<void>;
   submitLabel: string;
 }) {
+  const { accessToken } = useAdminAuth();
   const [form, setForm] = useState(toFormState(initial));
   const [images, setImages] = useState<ImageRow[]>(
     initial?.images.length
@@ -153,6 +156,16 @@ export function ProductForm({
               {images.map((img, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <span className="w-5 shrink-0 text-xs text-muted">{index === 0 ? "★" : index + 1}</span>
+                  {img.url ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- admin-pasted URLs can be any host, not worth allow-listing every domain for a form-only thumbnail
+                    <img
+                      src={img.url}
+                      alt=""
+                      className="h-9 w-9 shrink-0 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <span className="h-9 w-9 shrink-0 rounded-lg bg-cream" />
+                  )}
                   <input
                     placeholder="Image URL"
                     value={img.url}
@@ -165,6 +178,12 @@ export function ProductForm({
                     onChange={(e) => updateImage(index, { altText: e.target.value })}
                     className={`${inputClass} max-w-[180px]`}
                   />
+                  {accessToken && (
+                    <ImageUploadField
+                      accessToken={accessToken}
+                      onUploaded={(url) => updateImage(index, { url })}
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={() => setImages((prev) => prev.filter((_, i) => i !== index))}
