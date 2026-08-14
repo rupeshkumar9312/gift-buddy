@@ -83,6 +83,12 @@ class EnvironmentVariables {
   @IsOptional()
   PAYMENT_GATEWAY_ENABLED: string = 'false';
 
+  // How long an unpaid card order holds its stock reservation before the
+  // abandoned-order sweep releases it back to sellable stock.
+  @IsInt()
+  @IsOptional()
+  CHECKOUT_ABANDONED_ORDER_TTL_MINUTES: number = 30;
+
   @IsString()
   @IsOptional()
   SMTP_HOST: string = 'localhost';

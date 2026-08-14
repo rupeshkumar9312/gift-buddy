@@ -92,6 +92,15 @@ export class CheckoutController {
     if (event.type === 'payment_intent.succeeded') {
       const intent = event.data.object as { id: string };
       await this.checkoutService.confirmPaymentSucceeded(intent.id, event);
+    } else if (
+      event.type === 'payment_intent.payment_failed' ||
+      event.type === 'payment_intent.canceled'
+    ) {
+      // Stock was reserved when the order was created — a definitively
+      // failed or canceled payment means that reservation should be
+      // released back to sellable inventory now, not left to expire.
+      const intent = event.data.object as { id: string };
+      await this.checkoutService.releaseStockForFailedPayment(intent.id);
     }
 
     return { received: true };

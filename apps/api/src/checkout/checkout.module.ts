@@ -12,6 +12,7 @@ import { Payment } from '../payments/entities/payment.entity';
 import { Product } from '../products/entities/product.entity';
 import { CheckoutService } from './checkout.service';
 import { CheckoutController } from './checkout.controller';
+import { CheckoutCleanupService } from './checkout-cleanup.service';
 
 @Module({
   imports: [
@@ -29,6 +30,6 @@ import { CheckoutController } from './checkout.controller';
     MailModule,
   ],
   controllers: [CheckoutController],
-  providers: [CheckoutService],
+  providers: [CheckoutService, CheckoutCleanupService],
 })
 export class CheckoutModule {}

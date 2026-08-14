@@ -8,7 +8,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { PaginatedResponse } from '../common/dto/paginated-response.dto';
 import { Product } from '../products/entities/product.entity';
-import { Payment } from '../payments/entities/payment.entity';
 import { MailService } from '../mail/mail.service';
 import { Order, OrderStatus } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
@@ -38,8 +37,6 @@ export class OrdersService {
     private readonly orderItemRepository: Repository<OrderItem>,
     @InjectRepository(OrderStatusHistory)
     private readonly orderStatusHistoryRepository: Repository<OrderStatusHistory>,
-    @InjectRepository(Payment)
-    private readonly paymentRepository: Repository<Payment>,
     private readonly mailService: MailService,
   ) {}
 
@@ -126,34 +123,23 @@ export class OrdersService {
       );
     }
 
-    const payment = await this.paymentRepository.findOne({
-      where: { orderId: order.id },
-    });
-    // Stock is only ever reserved once payment is confirmed (card) or at
-    // checkout (COD, which stays PENDING_PAYMENT until delivery) — a card
-    // order still sitting at PENDING_PAYMENT never had stock decremented,
-    // so cancelling it must not restock inventory it never reserved.
-    const stockWasReserved =
-      order.status === OrderStatus.PAID ||
-      (order.status === OrderStatus.PENDING_PAYMENT &&
-        payment?.provider === 'cod');
-
+    // Every order reserves its stock at checkout time now (card and COD
+    // alike — see CheckoutService.checkout()), so any order reachable here
+    // (still PENDING_PAYMENT or PAID) always has its stock currently held.
     const previousStatus = order.status;
     const items = await this.orderItemRepository.find({
       where: { orderId: order.id },
     });
 
     await this.dataSource.transaction(async (manager) => {
-      if (stockWasReserved) {
-        for (const item of items) {
-          if (item.productId) {
-            await manager.increment(
-              Product,
-              { id: item.productId },
-              'stockQty',
-              item.quantity,
-            );
-          }
+      for (const item of items) {
+        if (item.productId) {
+          await manager.increment(
+            Product,
+            { id: item.productId },
+            'stockQty',
+            item.quantity,
+          );
         }
       }
 
