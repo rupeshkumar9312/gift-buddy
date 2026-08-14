@@ -45,6 +45,16 @@ export default () => ({
     // through Stripe (or its dev simulator — see PaymentsService).
     gatewayEnabled: (process.env.PAYMENT_GATEWAY_ENABLED ?? 'false') === 'true',
   },
+  checkout: {
+    // Stock is reserved the moment a card order is created (see
+    // CheckoutService). If the customer never completes payment, this is
+    // how long the reservation is held before the abandoned-order sweep
+    // releases it back to sellable stock.
+    abandonedOrderTtlMinutes: parseInt(
+      process.env.CHECKOUT_ABANDONED_ORDER_TTL_MINUTES ?? '30',
+      10,
+    ),
+  },
   mail: {
     host: process.env.SMTP_HOST ?? 'localhost',
     port: parseInt(process.env.SMTP_PORT ?? '1025', 10),
@@ -54,5 +64,10 @@ export default () => ({
     cloudName: process.env.CLOUDINARY_CLOUD_NAME ?? '',
     apiKey: process.env.CLOUDINARY_API_KEY ?? '',
     apiSecret: process.env.CLOUDINARY_API_SECRET ?? '',
+  },
+  twilio: {
+    accountSid: process.env.TWILIO_ACCOUNT_SID ?? '',
+    authToken: process.env.TWILIO_AUTH_TOKEN ?? '',
+    fromNumber: process.env.TWILIO_FROM_NUMBER ?? '',
   },
 });

@@ -80,7 +80,7 @@ export default function CheckoutPage() {
       ...prev,
       firstName: prev.firstName || user.firstName,
       lastName: prev.lastName || user.lastName,
-      email: prev.email || user.email,
+      email: prev.email || user.email || "",
       phone: prev.phone || user.phone || "",
     }));
   }

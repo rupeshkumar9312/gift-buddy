@@ -1,11 +1,12 @@
 import { randomBytes } from 'crypto';
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource, EntityManager, QueryFailedError } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -72,16 +73,71 @@ export class CheckoutService {
     private readonly orderRepository: Repository<Order>,
   ) {}
 
-  /** Shared by the Stripe webhook path and the Cash-on-Delivery checkout
-   * path — both need to reserve stock the moment an order becomes real,
-   * just at different points in the flow. */
+  /** MySQL's deadlock detector guarantees it only ever kills one side of a
+   * genuine deadlock and rolls it back cleanly — the standard, correct
+   * response is to retry, not to surface it to the customer as a failure.
+   * Concurrent checkouts for carts containing the same products in a
+   * different order can deadlock this way even with the lock-ordering
+   * fix in decrementStock() below. */
+  private async runWithDeadlockRetry<T>(
+    work: (manager: EntityManager) => Promise<T>,
+    attempt = 1,
+  ): Promise<T> {
+    try {
+      return await this.dataSource.transaction(work);
+    } catch (error) {
+      const isDeadlock =
+        error instanceof QueryFailedError &&
+        (error.driverError as { code?: string })?.code === 'ER_LOCK_DEADLOCK';
+      if (isDeadlock && attempt < 3) {
+        await new Promise((resolve) => setTimeout(resolve, attempt * 50));
+        return this.runWithDeadlockRetry(work, attempt + 1);
+      }
+      throw error;
+    }
+  }
+
+  /** Reserves stock for every order at creation time (card and COD alike).
+   * The `stockQty >= :qty` guard makes this atomic under concurrency: two
+   * requests racing to decrement the same row serialize at the row lock —
+   * InnoDB always writes against the latest committed value, not a
+   * snapshot, so whichever UPDATE runs first wins and the second sees the
+   * already-reduced value. If it can't reserve the full quantity, the
+   * whole order-creation transaction rolls back — no order, no
+   * PaymentIntent, no partial decrement. */
   private async decrementStock(
     manager: EntityManager,
     orderItems: OrderItem[],
   ): Promise<void> {
     for (const item of orderItems) {
+      if (!item.productId) continue;
+      const result = await manager
+        .createQueryBuilder()
+        .update(Product)
+        .set({ stockQty: () => 'stockQty - :qty' })
+        .where('id = :id AND stockQty >= :qty', {
+          id: item.productId,
+          qty: item.quantity,
+        })
+        .execute();
+      if (result.affected === 0) {
+        throw new ConflictException(
+          `${item.productName} is no longer available in that quantity`,
+        );
+      }
+    }
+  }
+
+  /** The inverse of decrementStock — used when a reserved order's payment
+   * fails, is canceled, or is abandoned. Increments have no lower bound to
+   * violate, so this needs no guard clause. */
+  private async incrementStock(
+    manager: EntityManager,
+    orderItems: OrderItem[],
+  ): Promise<void> {
+    for (const item of orderItems) {
       if (item.productId) {
-        await manager.decrement(
+        await manager.increment(
           Product,
           { id: item.productId },
           'stockQty',
@@ -105,6 +161,10 @@ export class CheckoutService {
       throw new BadRequestException('Your cart is empty');
     }
 
+    // Fast-path only — a plain read against potentially-stale data, purely
+    // to avoid a wasted transaction for the common case. Not a race guard:
+    // decrementStock() below, inside the transaction, is what actually
+    // enforces availability atomically.
     for (const item of items) {
       if (item.quantity > item.product.stockQty) {
         throw new BadRequestException(
@@ -153,11 +213,13 @@ export class CheckoutService {
 
     // Order is created (and the cart retired) in its own transaction before
     // ever calling out to Stripe — mirrors Fig. 3 in the analysis doc, so a
-    // Stripe outage never leaves a half-written order row. When the gateway
-    // is disabled, the same transaction also reserves stock and confirms
-    // the order outright, since Cash on Delivery has no later webhook event
-    // to do that for it.
-    const order = await this.dataSource.transaction(async (manager) => {
+    // Stripe outage never leaves a half-written order row. Stock is reserved
+    // in this same transaction for every order, card or COD: reserving only
+    // on payment confirmation (the old card-path behavior) left a window of
+    // however long the customer takes to pay during which two people could
+    // both be shown "in stock" for the same last unit. Reserving atomically
+    // at creation closes that window; see decrementStock() below for how.
+    const order = await this.runWithDeadlockRetry(async (manager) => {
       const created = manager.create(Order, {
         orderNumber: generateOrderNumber(),
         userId: identity.userId,
@@ -190,6 +252,20 @@ export class CheckoutService {
           ).toFixed(2),
         }),
       );
+
+      // Reserved for every order now, not just COD — throws (rolling back
+      // the whole transaction) if any item can't be fully reserved. Done
+      // *before* order_items is inserted, and deliberately so: order_items
+      // has a foreign key to products, and an INSERT there takes a shared
+      // lock on the referenced product row for the FK check. If both
+      // sides of a race took that shared lock first and then tried to
+      // upgrade to the exclusive lock this UPDATE needs, that's a
+      // guaranteed lock-upgrade deadlock (each waiting on the other's
+      // shared lock) rather than a clean wait. Taking the exclusive lock
+      // first avoids the upgrade entirely — the loser just waits for the
+      // row, then sees the reduced stock.
+      await this.decrementStock(manager, orderItems);
+
       await manager.save(OrderItem, orderItems);
 
       await manager.save(
@@ -207,7 +283,6 @@ export class CheckoutService {
       }
 
       if (!gatewayEnabled) {
-        await this.decrementStock(manager, orderItems);
         savedOrder.placedAt = new Date();
         await manager.save(Order, savedOrder);
 
@@ -279,8 +354,9 @@ export class CheckoutService {
   /**
    * Marks an order paid from its Stripe PaymentIntent id — called by the
    * webhook handler (and, in dev mode only, the dev-confirm bypass). Keyed
-   * on payments.provider_ref so a duplicate Stripe retry is a no-op instead
-   * of double-decrementing stock.
+   * on payments.provider_ref so a duplicate Stripe retry is a no-op. Stock
+   * is NOT decremented here — it was already reserved when the order was
+   * created (see checkout() / decrementStock()); this only flips status.
    */
   async confirmPaymentSucceeded(
     providerRef: string,
@@ -299,15 +375,10 @@ export class CheckoutService {
       return; // already processed — idempotent under Stripe's at-least-once retries
     }
 
-    const order = await this.dataSource.transaction(async (manager) => {
+    const order = await this.runWithDeadlockRetry(async (manager) => {
       const orderRow = await manager.findOneOrFail(Order, {
         where: { id: payment.orderId },
       });
-      const orderItems = await manager.find(OrderItem, {
-        where: { orderId: orderRow.id },
-      });
-
-      await this.decrementStock(manager, orderItems);
 
       orderRow.status = OrderStatus.PAID;
       orderRow.placedAt = new Date();
@@ -336,6 +407,109 @@ export class CheckoutService {
       total: Number(order.total),
       currency: order.currency,
     });
+  }
+
+  /**
+   * Releases a reserved-but-never-paid card order's stock back to
+   * inventory — called from the webhook on `payment_intent.payment_failed`
+   * / `payment_intent.canceled`, and from the abandoned-order sweep below.
+   * A no-op if the order has already moved past PENDING_PAYMENT (paid, or
+   * already released by whichever of the two paths got there first).
+   */
+  private async releaseStock(order: Order, note: string): Promise<void> {
+    await this.runWithDeadlockRetry(async (manager) => {
+      // Atomic guard against the webhook and the abandoned-order sweep
+      // both trying to release the same order at once: only the request
+      // that actually flips PENDING_PAYMENT -> CANCELLED proceeds to
+      // increment stock. The other sees affected === 0 and is a no-op —
+      // same "conditional UPDATE as the lock" pattern as decrementStock().
+      const result = await manager
+        .createQueryBuilder()
+        .update(Order)
+        .set({ status: OrderStatus.CANCELLED })
+        .where('id = :id AND status = :pending', {
+          id: order.id,
+          pending: OrderStatus.PENDING_PAYMENT,
+        })
+        .execute();
+      if (result.affected === 0) {
+        return;
+      }
+
+      const orderItems = await manager.find(OrderItem, {
+        where: { orderId: order.id },
+      });
+      await this.incrementStock(manager, orderItems);
+
+      const payment = await manager.findOne(Payment, {
+        where: { orderId: order.id },
+      });
+      if (payment) {
+        payment.status = PaymentStatus.FAILED;
+        await manager.save(Payment, payment);
+      }
+
+      await manager.save(
+        OrderStatusHistory,
+        manager.create(OrderStatusHistory, {
+          orderId: order.id,
+          fromStatus: OrderStatus.PENDING_PAYMENT,
+          toStatus: OrderStatus.CANCELLED,
+          note,
+        }),
+      );
+    });
+  }
+
+  /** Webhook entry point for a card payment that definitively did not
+   * succeed — see releaseStock() for what this actually does. */
+  async releaseStockForFailedPayment(providerRef: string): Promise<void> {
+    const payment = await this.paymentRepository.findOne({
+      where: { providerRef },
+    });
+    if (!payment) {
+      this.logger.warn(
+        `Received payment failure for unknown providerRef ${providerRef}`,
+      );
+      return;
+    }
+    const order = await this.orderRepository.findOne({
+      where: { id: payment.orderId },
+    });
+    if (!order) return;
+
+    await this.releaseStock(
+      order,
+      'Payment failed or canceled — stock released',
+    );
+  }
+
+  /** Safety net for abandonments that never produce a webhook at all (the
+   * customer closes the tab before Stripe ever tells us anything). Finds
+   * card orders that have sat unpaid past the configured TTL and releases
+   * their stock the same way. Called on a schedule — see
+   * CheckoutCleanupService. */
+  async releaseAbandonedOrders(): Promise<number> {
+    const ttlMinutes = this.config.getOrThrow<number>(
+      'checkout.abandonedOrderTtlMinutes',
+    );
+    const cutoff = new Date(Date.now() - ttlMinutes * 60 * 1000);
+
+    const abandoned = await this.orderRepository
+      .createQueryBuilder('order')
+      .innerJoin(Payment, 'payment', 'payment.order_id = order.id')
+      .where('order.status = :status', {
+        status: OrderStatus.PENDING_PAYMENT,
+      })
+      .andWhere('payment.provider = :provider', { provider: 'stripe' })
+      .andWhere('order.createdAt < :cutoff', { cutoff })
+      .getMany();
+
+    for (const order of abandoned) {
+      await this.releaseStock(order, 'Abandoned checkout — stock released');
+    }
+
+    return abandoned.length;
   }
 
   /**

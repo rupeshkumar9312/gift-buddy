@@ -83,6 +83,12 @@ class EnvironmentVariables {
   @IsOptional()
   PAYMENT_GATEWAY_ENABLED: string = 'false';
 
+  // How long an unpaid card order holds its stock reservation before the
+  // abandoned-order sweep releases it back to sellable stock.
+  @IsInt()
+  @IsOptional()
+  CHECKOUT_ABANDONED_ORDER_TTL_MINUTES: number = 30;
+
   @IsString()
   @IsOptional()
   SMTP_HOST: string = 'localhost';
@@ -108,6 +114,20 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   CLOUDINARY_API_SECRET: string = '';
+
+  // Optional: when unset, the OTP request endpoint responds with a clear
+  // "not configured" error instead of the app failing to boot.
+  @IsString()
+  @IsOptional()
+  TWILIO_ACCOUNT_SID: string = '';
+
+  @IsString()
+  @IsOptional()
+  TWILIO_AUTH_TOKEN: string = '';
+
+  @IsString()
+  @IsOptional()
+  TWILIO_FROM_NUMBER: string = '';
 }
 
 export function validate(config: Record<string, unknown>) {

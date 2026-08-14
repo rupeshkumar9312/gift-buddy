@@ -6,7 +6,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api/v1
 
 export type AuthUser = {
   id: number;
-  email: string;
+  email: string | null;
   firstName: string;
   lastName: string;
   phone: string | null;
@@ -24,6 +24,12 @@ type AuthContextValue = {
     firstName: string;
     lastName: string;
   }) => Promise<void>;
+  requestOtp: (phone: string) => Promise<{ isNewUser: boolean; devOtp?: string }>;
+  verifyOtp: (
+    phone: string,
+    code: string,
+    name?: { firstName: string; lastName: string }
+  ) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -84,6 +90,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(data.accessToken);
   };
 
+  const requestOtp = async (phone: string) => {
+    const res = await fetch(`${API_URL}/auth/otp/request`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone }),
+    });
+    if (!res.ok) throw new Error(await parseErrorMessage(res));
+    return (await res.json()) as { isNewUser: boolean; devOtp?: string };
+  };
+
+  const verifyOtp: AuthContextValue["verifyOtp"] = async (phone, code, name) => {
+    const res = await fetch(`${API_URL}/auth/otp/verify`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, code, ...name }),
+    });
+    if (!res.ok) throw new Error(await parseErrorMessage(res));
+    const data = (await res.json()) as { user: AuthUser; accessToken: string };
+    setUser(data.user);
+    setAccessToken(data.accessToken);
+  };
+
   const logout = async () => {
     if (accessToken) {
       await fetch(`${API_URL}/auth/logout`, {
@@ -97,7 +127,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, accessToken, isLoading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, accessToken, isLoading, login, register, requestOtp, verifyOtp, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
