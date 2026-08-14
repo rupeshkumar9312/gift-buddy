@@ -192,7 +192,7 @@ export function ProductForm({
           <section className="rounded-2xl border border-line bg-white p-6">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Pricing</h2>
             <div className="mt-4 flex flex-col gap-4">
-              <Field label="Price (USD)">
+              <Field label="Price (INR)">
                 <input
                   required
                   type="number"

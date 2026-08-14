@@ -11,7 +11,7 @@ import {
   type Coupon,
   type CouponInput,
 } from "@/lib/api";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatMoney } from "@/lib/format";
 
 const EMPTY_FORM: CouponInput = {
   code: "",
@@ -143,7 +143,7 @@ export default function CouponsPage() {
                 <option value="fixed">Fixed amount off</option>
               </select>
             </Field>
-            <Field label={form.type === "percent" ? "Percent (e.g. 10 = 10%)" : "Amount off ($)"}>
+            <Field label={form.type === "percent" ? "Percent (e.g. 10 = 10%)" : "Amount off (₹)"}>
               <input
                 required
                 type="number"
@@ -154,7 +154,7 @@ export default function CouponsPage() {
                 className={inputClass}
               />
             </Field>
-            <Field label="Minimum subtotal ($)">
+            <Field label="Minimum subtotal (₹)">
               <input
                 type="number"
                 min={0}
@@ -213,9 +213,9 @@ export default function CouponsPage() {
               <tr key={coupon.id}>
                 <td className="px-5 py-3 font-medium text-ink">{coupon.code}</td>
                 <td className="px-5 py-3 text-muted">
-                  {coupon.type === "percent" ? `${Number(coupon.value)}%` : `$${Number(coupon.value).toFixed(2)}`}
+                  {coupon.type === "percent" ? `${Number(coupon.value)}%` : formatMoney(Number(coupon.value))}
                 </td>
-                <td className="px-5 py-3 text-muted">${Number(coupon.minSubtotal).toFixed(2)}</td>
+                <td className="px-5 py-3 text-muted">{formatMoney(Number(coupon.minSubtotal))}</td>
                 <td className="px-5 py-3 text-muted">
                   {coupon.timesUsed}
                   {coupon.usageLimit ? ` / ${coupon.usageLimit}` : ""}

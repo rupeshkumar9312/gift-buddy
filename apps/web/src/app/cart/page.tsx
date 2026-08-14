@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { PageBanner } from "@/components/PageBanner";
 import { useCart } from "@/context/CartContext";
+import { formatMoney } from "@/lib/format";
 
 export default function CartPage() {
   const {
@@ -89,7 +90,7 @@ export default function CartPage() {
                           {line.name}
                         </Link>
                       </div>
-                      <span className="text-sm text-muted">${price.toFixed(2)}</span>
+                      <span className="text-sm text-muted">{formatMoney(price)}</span>
                       <div className="flex items-center rounded-full border border-line w-fit">
                         <button
                           onClick={() => updateQuantity(line.productId, line.quantity - 1)}
@@ -107,7 +108,7 @@ export default function CartPage() {
                           <Plus size={12} />
                         </button>
                       </div>
-                      <span className="text-sm font-medium text-ink">${line.lineTotal.toFixed(2)}</span>
+                      <span className="text-sm font-medium text-ink">{formatMoney(line.lineTotal)}</span>
                       <button
                         onClick={() => removeFromCart(line.productId)}
                         aria-label="Remove item"
@@ -169,21 +170,21 @@ export default function CartPage() {
               <div className="mt-5 flex flex-col gap-3 text-sm">
                 <div className="flex justify-between text-muted">
                   <span>Subtotal</span>
-                  <span className="text-ink">${subtotal.toFixed(2)}</span>
+                  <span className="text-ink">{formatMoney(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-muted">
                   <span>Shipping</span>
-                  <span className="text-ink">{shippingCost === 0 ? "Free" : `$${shippingCost.toFixed(2)}`}</span>
+                  <span className="text-ink">{shippingCost === 0 ? "Free" : formatMoney(shippingCost)}</span>
                 </div>
                 {discountTotal > 0 && (
                   <div className="flex justify-between text-muted">
                     <span>Discount{couponCode ? ` (${couponCode})` : ""}</span>
-                    <span className="text-primary">-${discountTotal.toFixed(2)}</span>
+                    <span className="text-primary">-{formatMoney(discountTotal)}</span>
                   </div>
                 )}
                 <div className="flex justify-between border-t border-line pt-3 text-base font-semibold text-ink">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>{formatMoney(total)}</span>
                 </div>
               </div>
               <Link

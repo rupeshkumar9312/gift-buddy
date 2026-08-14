@@ -37,7 +37,7 @@ export class Cart {
   @Column({ type: 'varchar', length: 20, default: CartStatus.ACTIVE })
   status: CartStatus;
 
-  @Column({ type: 'varchar', length: 3, default: 'usd' })
+  @Column({ type: 'varchar', length: 3, default: 'inr' })
   currency: string;
 
   // Re-validated against the coupons table on every read (see CartService) —

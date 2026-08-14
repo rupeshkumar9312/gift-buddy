@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Package } from "lucide-react";
 import { PageBanner } from "@/components/PageBanner";
 import { trackOrder, type OrderDetail } from "@/lib/api";
+import { formatMoney } from "@/lib/format";
 
 const STATUS_LABEL: Record<string, string> = {
   pending_payment: "Pending Payment",
@@ -107,15 +108,13 @@ export default function TrackOrdersPage() {
                       <p className="text-ink">{item.productName}</p>
                       <p className="text-xs text-muted">Qty {item.quantity}</p>
                     </div>
-                    <span className="text-ink">${item.lineTotal.toFixed(2)}</span>
+                    <span className="text-ink">{formatMoney(item.lineTotal)}</span>
                   </li>
                 ))}
               </ul>
               <div className="mt-3 flex justify-between border-t border-line pt-3 font-semibold">
                 <span>Total</span>
-                <span>
-                  ${order.total.toFixed(2)} {order.currency.toUpperCase()}
-                </span>
+                <span>{formatMoney(order.total, order.currency)}</span>
               </div>
             </div>
           )}

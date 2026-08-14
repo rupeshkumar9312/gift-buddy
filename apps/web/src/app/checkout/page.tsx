@@ -14,6 +14,7 @@ import {
   type CheckoutResult,
   type ShippingMethod,
 } from "@/lib/api";
+import { formatMoney } from "@/lib/format";
 import { StripePaymentForm } from "./StripePaymentForm";
 
 const inputClass =
@@ -259,7 +260,7 @@ export default function CheckoutPage() {
                           <span className="text-muted">
                             {method.freeOverAmount !== null && subtotal >= method.freeOverAmount
                               ? "Free"
-                              : `$${method.price.toFixed(2)}`}
+                              : formatMoney(method.price)}
                           </span>
                         </label>
                       ))}
@@ -286,9 +287,7 @@ export default function CheckoutPage() {
                 <h2 className="text-lg font-medium">Payment</h2>
                 <p className="mt-2 text-sm text-muted">
                   Order <span className="font-medium text-ink">{result.orderNumber}</span> — charging{" "}
-                  <span className="font-medium text-ink">
-                    ${result.total.toFixed(2)} {result.currency.toUpperCase()}
-                  </span>
+                  <span className="font-medium text-ink">{formatMoney(result.total, result.currency)}</span>
                 </p>
 
                 {error && (
@@ -345,7 +344,7 @@ export default function CheckoutPage() {
                       <p className="font-medium text-ink">{line.name}</p>
                       <p className="text-muted">Qty {line.quantity}</p>
                     </div>
-                    <span className="text-sm font-medium">${line.lineTotal.toFixed(2)}</span>
+                    <span className="text-sm font-medium">{formatMoney(line.lineTotal)}</span>
                   </li>
                 ))
               )}
@@ -354,21 +353,21 @@ export default function CheckoutPage() {
             <div className="mt-6 flex flex-col gap-3 border-t border-line pt-5 text-sm">
               <div className="flex justify-between text-muted">
                 <span>Subtotal</span>
-                <span className="text-ink">${subtotal.toFixed(2)}</span>
+                <span className="text-ink">{formatMoney(subtotal)}</span>
               </div>
               <div className="flex justify-between text-muted">
                 <span>Shipping</span>
-                <span className="text-ink">{shippingCost === 0 ? "Free" : `$${shippingCost.toFixed(2)}`}</span>
+                <span className="text-ink">{shippingCost === 0 ? "Free" : formatMoney(shippingCost)}</span>
               </div>
               {discountTotal > 0 && (
                 <div className="flex justify-between text-muted">
                   <span>Discount{couponCode ? ` (${couponCode})` : ""}</span>
-                  <span className="text-primary">-${discountTotal.toFixed(2)}</span>
+                  <span className="text-primary">-{formatMoney(discountTotal)}</span>
                 </div>
               )}
               <div className="flex justify-between border-t border-line pt-3 text-base font-semibold text-ink">
                 <span>Total</span>
-                <span>${(result?.total ?? estimatedTotal).toFixed(2)}</span>
+                <span>{formatMoney(result?.total ?? estimatedTotal)}</span>
               </div>
             </div>
           </aside>

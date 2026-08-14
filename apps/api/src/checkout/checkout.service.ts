@@ -121,7 +121,7 @@ export class CheckoutService {
 
     const total =
       Math.round((subtotal + shippingTotal - discountTotal) * 100) / 100;
-    const currency = cart.currency ?? 'usd';
+    const currency = cart.currency ?? 'inr';
     const shippingAddress = toOrderAddress(dto.shippingAddress);
     const billingAddress = dto.billingAddress
       ? toOrderAddress(dto.billingAddress)
