@@ -15,7 +15,9 @@ import { StatusBadge } from "@/components/StatusBadge";
 const NEXT_STATUS_OPTIONS: Record<string, string[]> = {
   pending_payment: [],
   paid: ["fulfilled", "cancelled", "refunded"],
-  fulfilled: ["completed", "refunded"],
+  fulfilled: ["out_for_delivery", "cancelled", "refunded"],
+  out_for_delivery: ["delivered", "refunded"],
+  delivered: ["completed", "refunded"],
   completed: ["refunded"],
   cancelled: [],
   refunded: [],

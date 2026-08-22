@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Gift } from "lucide-react";
+import { Gift, Truck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageBanner } from "@/components/PageBanner";
@@ -21,7 +21,7 @@ import {
   type ShippingMethod,
   type Society,
 } from "@/lib/api";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, getEstimatedDelivery, type EstimatedDelivery } from "@/lib/format";
 import { StripePaymentForm } from "./StripePaymentForm";
 
 const inputClass =
@@ -68,6 +68,13 @@ export default function CheckoutPage() {
   const [result, setResult] = useState<CheckoutResult | null>(null);
   const [outOfArea, setOutOfArea] = useState(false);
   const [gatewayEnabled, setGatewayEnabled] = useState(true);
+  // Computed client-side only (after mount) rather than during render, since
+  // this depends on "now" — reading the clock during the render body would
+  // run once on the server and again on hydration, and those two reads
+  // could disagree right around the 5pm cutoff, producing a hydration
+  // mismatch. Settling it in an effect keeps the server-rendered markup
+  // free of this value entirely.
+  const [delivery, setDelivery] = useState<EstimatedDelivery | null>(null);
 
   useEffect(() => {
     getShippingMethods()
@@ -82,6 +89,12 @@ export default function CheckoutPage() {
     getSocieties()
       .then(setSocieties)
       .catch(() => undefined);
+    // Deferred a tick (rather than a direct synchronous setState here) only
+    // to satisfy the lint rule against synchronous setState in an effect
+    // body — the effect itself already never runs during SSR, which is the
+    // actual reason this is computed here instead of during render (see the
+    // `delivery` state comment above).
+    Promise.resolve().then(() => setDelivery(getEstimatedDelivery()));
   }, []);
 
   const [prefilled, setPrefilled] = useState(false);
@@ -461,6 +474,17 @@ export default function CheckoutPage() {
 
           <aside className="h-fit rounded-2xl bg-cream p-7">
             <h2 className="text-lg font-medium">Your Order</h2>
+            {delivery && (
+              <div className="mt-4 flex items-center gap-2.5 rounded-xl bg-white px-4 py-3 text-sm text-ink">
+                <Truck size={18} className="shrink-0 text-primary" />
+                <span>
+                  Estimated delivery:{" "}
+                  <strong className="font-medium">
+                    {delivery.isSameDay ? "Today" : "Tomorrow"}, {delivery.dateLabel}
+                  </strong>
+                </span>
+              </div>
+            )}
             <ul className="mt-5 flex flex-col gap-4">
               {lines.length === 0 ? (
                 <p className="text-sm text-muted">Your cart is empty.</p>

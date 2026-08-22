@@ -7,6 +7,8 @@ import { Product } from '../../products/entities/product.entity';
 const REVENUE_STATUSES = [
   OrderStatus.PAID,
   OrderStatus.FULFILLED,
+  OrderStatus.OUT_FOR_DELIVERY,
+  OrderStatus.DELIVERED,
   OrderStatus.COMPLETED,
 ];
 const LOW_STOCK_THRESHOLD = 10;

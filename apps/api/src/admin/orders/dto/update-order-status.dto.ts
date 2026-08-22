@@ -6,6 +6,8 @@ import { OrderStatus } from '../../../orders/entities/order.entity';
 // can only move an order forward from there, or cancel/refund it.
 export const ADMIN_SETTABLE_STATUSES = [
   OrderStatus.FULFILLED,
+  OrderStatus.OUT_FOR_DELIVERY,
+  OrderStatus.DELIVERED,
   OrderStatus.COMPLETED,
   OrderStatus.CANCELLED,
   OrderStatus.REFUNDED,

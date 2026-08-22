@@ -2,12 +2,12 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Truck } from "lucide-react";
 import { PageBanner } from "@/components/PageBanner";
 import { Spinner } from "@/components/Spinner";
 import { useAuth } from "@/context/AuthContext";
 import { getOrder, type OrderDetail } from "@/lib/api";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, getEstimatedDelivery } from "@/lib/format";
 
 export default function CheckoutSuccessPage({
   params,
@@ -54,6 +54,20 @@ export default function CheckoutSuccessPage({
                 <span className="text-muted">Status</span>
                 <span className="font-medium capitalize text-ink">{order.status.replace("_", " ")}</span>
               </div>
+              {(() => {
+                const delivery = getEstimatedDelivery(order.createdAt);
+                return (
+                  <div className="flex items-center gap-2.5 border-b border-line py-3">
+                    <Truck size={18} className="shrink-0 text-primary" />
+                    <span>
+                      Estimated delivery:{" "}
+                      <strong className="font-medium text-ink">
+                        {delivery.isSameDay ? "Today" : "Tomorrow"}, {delivery.dateLabel}
+                      </strong>
+                    </span>
+                  </div>
+                );
+              })()}
               <ul className="mt-3 flex flex-col gap-2">
                 {order.items.map((item) => (
                   <li key={item.sku} className="flex justify-between">

@@ -7,7 +7,17 @@ import { getOrders, type AdminOrderSummary, type Paginated } from "@/lib/api";
 import { formatDate, formatMoney, STATUS_LABEL } from "@/lib/format";
 import { StatusBadge } from "@/components/StatusBadge";
 
-const STATUS_TABS = ["all", "pending_payment", "paid", "fulfilled", "completed", "cancelled", "refunded"];
+const STATUS_TABS = [
+  "all",
+  "pending_payment",
+  "paid",
+  "fulfilled",
+  "out_for_delivery",
+  "delivered",
+  "completed",
+  "cancelled",
+  "refunded",
+];
 
 export default function OrdersPage() {
   const { accessToken } = useAdminAuth();
