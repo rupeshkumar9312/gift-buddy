@@ -49,7 +49,15 @@ export function GoogleSignInButton({
 }) {
   const buttonRef = useRef<HTMLDivElement>(null);
   const onCredentialRef = useRef(onCredential);
-  const [scriptLoaded, setScriptLoaded] = useState(false);
+  // next/script's onLoad only fires for the mount that actually triggers the
+  // first load — Next.js dedupes the <script> tag on later client-side
+  // navigations, so a GoogleSignInButton remounted on a different gated page
+  // would never see onLoad fire again and scriptLoaded would stay stuck at
+  // false until a hard refresh. The lazy initializer covers that case by
+  // checking for the already-loaded global at first render.
+  const [scriptLoaded, setScriptLoaded] = useState(
+    () => typeof window !== "undefined" && Boolean(window.google)
+  );
 
   useEffect(() => {
     onCredentialRef.current = onCredential;
