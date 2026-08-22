@@ -518,6 +518,45 @@ export async function deleteSociety(accessToken: string, id: number) {
   return apiFetch<void>(`/admin/societies/${id}`, { method: "DELETE", accessToken });
 }
 
+// ---- Out-of-area orders ----
+
+export type OutOfAreaOrderAddress = {
+  firstName: string;
+  lastName: string;
+  line1: string;
+  line2: string;
+  city: string;
+  region: string;
+  postalCode: string;
+  country: string;
+  phone: string | null;
+};
+
+export type OutOfAreaOrderItem = {
+  productId: number;
+  name: string;
+  quantity: number;
+  price: number;
+  lineTotal: number;
+};
+
+export type OutOfAreaOrder = {
+  id: number;
+  email: string;
+  address: OutOfAreaOrderAddress;
+  items: OutOfAreaOrderItem[];
+  subtotal: string;
+  createdAt: string;
+};
+
+export async function getOutOfAreaOrders(accessToken: string) {
+  return apiFetch<OutOfAreaOrder[]>("/admin/out-of-area-orders", { accessToken });
+}
+
+export async function deleteOutOfAreaOrder(accessToken: string, id: number) {
+  return apiFetch<void>(`/admin/out-of-area-orders/${id}`, { method: "DELETE", accessToken });
+}
+
 // ---- Reviews ----
 
 export type AdminReview = {

@@ -12,6 +12,7 @@ import { ProductsModule } from './products/products.module';
 import { OccasionsModule } from './occasions/occasions.module';
 import { HomeHeroModule } from './home-hero/home-hero.module';
 import { SocietiesModule } from './societies/societies.module';
+import { OutOfAreaOrdersModule } from './out-of-area-orders/out-of-area-orders.module';
 import { CartModule } from './cart/cart.module';
 import { ShippingModule } from './shipping/shipping.module';
 import { CheckoutModule } from './checkout/checkout.module';
@@ -37,6 +38,7 @@ import { AdminContactMessagesModule } from './admin/contact-messages/admin-conta
 import { AdminMediaModule } from './admin/media/admin-media.module';
 import { AdminHomeHeroModule } from './admin/home-hero/admin-home-hero.module';
 import { AdminSocietiesModule } from './admin/societies/admin-societies.module';
+import { AdminOutOfAreaOrdersModule } from './admin/out-of-area-orders/admin-out-of-area-orders.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -58,6 +60,7 @@ import { AppService } from './app.service';
     OccasionsModule,
     HomeHeroModule,
     SocietiesModule,
+    OutOfAreaOrdersModule,
     CartModule,
     ShippingModule,
     CheckoutModule,
@@ -83,6 +86,7 @@ import { AppService } from './app.service';
     AdminMediaModule,
     AdminHomeHeroModule,
     AdminSocietiesModule,
+    AdminOutOfAreaOrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

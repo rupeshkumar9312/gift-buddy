@@ -229,6 +229,44 @@ export async function getSocieties(): Promise<Society[]> {
   return apiFetch<Society[]>("/societies");
 }
 
+// ---- Out-of-area orders ----
+
+export type OutOfAreaOrderAddress = {
+  firstName: string;
+  lastName: string;
+  line1: string;
+  line2: string;
+  city: string;
+  region: string;
+  postalCode: string;
+  country: string;
+  phone?: string;
+};
+
+export type OutOfAreaOrderItem = {
+  productId: number;
+  name: string;
+  quantity: number;
+  price: number;
+  lineTotal: number;
+};
+
+export type OutOfAreaOrderInput = {
+  email: string;
+  address: OutOfAreaOrderAddress;
+  items: OutOfAreaOrderItem[];
+  subtotal: number;
+};
+
+export async function submitOutOfAreaOrder(
+  input: OutOfAreaOrderInput,
+): Promise<{ received: true }> {
+  return apiFetch<{ received: true }>("/out-of-area-orders", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 // ---- Checkout ----
 
 export type AddressInput = {

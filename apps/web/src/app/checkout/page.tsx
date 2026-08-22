@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { Gift } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageBanner } from "@/components/PageBanner";
@@ -13,6 +14,7 @@ import {
   getCheckoutConfig,
   getShippingMethods,
   getSocieties,
+  submitOutOfAreaOrder,
   type CheckoutResult,
   type ShippingMethod,
   type Society,
@@ -62,6 +64,7 @@ export default function CheckoutPage() {
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CheckoutResult | null>(null);
+  const [outOfArea, setOutOfArea] = useState(false);
   const [gatewayEnabled, setGatewayEnabled] = useState(true);
 
   useEffect(() => {
@@ -102,12 +105,43 @@ export default function CheckoutPage() {
     : 0;
   const estimatedTotal = Math.max(0, subtotal + shippingCost - discountTotal);
 
+  const isServiceableSociety = societies.some(
+    (society) => society.name.trim().toLowerCase() === form.line2.trim().toLowerCase(),
+  );
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!shippingMethodId) return;
     setError(null);
     setSubmitting(true);
     try {
+      if (!isServiceableSociety) {
+        await submitOutOfAreaOrder({
+          email: form.email,
+          address: {
+            firstName: form.firstName,
+            lastName: form.lastName,
+            line1: form.line1,
+            line2: form.line2,
+            city: form.city,
+            region: form.region,
+            postalCode: form.postalCode,
+            country: form.country,
+            phone: form.phone || undefined,
+          },
+          items: lines.map((line) => ({
+            productId: line.productId,
+            name: line.name,
+            quantity: line.quantity,
+            price: line.salePrice ?? line.price,
+            lineTotal: line.lineTotal,
+          })),
+          subtotal,
+        });
+        setOutOfArea(true);
+        return;
+      }
+
       const res = await checkout(
         {
           email: form.email,
@@ -195,7 +229,27 @@ export default function CheckoutPage() {
       <div className="container-page py-14">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1fr_400px]">
           <div className="flex flex-col gap-10">
-            {!result ? (
+            {outOfArea ? (
+              <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-line bg-cream px-8 py-16 text-center">
+                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Gift size={26} />
+                </span>
+                <h2 className="font-script text-3xl text-primary">
+                  Coming Soon to Your Location!
+                </h2>
+                <p className="max-w-md text-sm text-muted">
+                  We don&apos;t deliver to &ldquo;{form.line2}&rdquo; just yet, but
+                  we&apos;ve saved your order details and our team will reach out as
+                  soon as we expand to your area.
+                </p>
+                <Link
+                  href="/shop"
+                  className="mt-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-white transition hover:bg-primary-dark"
+                >
+                  Continue Shopping
+                </Link>
+              </div>
+            ) : !result ? (
               <form onSubmit={handleSubmit} className="flex flex-col gap-10">
                 <div>
                   <h2 className="text-lg font-medium">Shipping Details</h2>
