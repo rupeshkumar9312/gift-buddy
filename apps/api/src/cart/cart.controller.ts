@@ -150,10 +150,19 @@ export class CartController {
   }
 
   private setCartCookie(res: Response, guestToken: string) {
+    // SameSite=Lax cookies are never sent back on cross-site fetch/XHR calls
+    // (only top-level navigations) — when the frontend and this API are on
+    // different sites (a local dev frontend hitting the deployed Render API,
+    // or a Vercel frontend hitting a Render API), the guest token cookie set
+    // by the first add-to-cart call would never round-trip on the next one,
+    // so every "add" silently started a brand-new guest cart instead of
+    // appending to the existing one. None+Secure fixes that, and only
+    // applies in production since Secure requires HTTPS.
+    const isProduction = this.config.get<string>('nodeEnv') === 'production';
     res.cookie(CART_COOKIE, guestToken, {
       httpOnly: true,
-      secure: this.config.get<string>('nodeEnv') === 'production',
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       path: CART_COOKIE_PATH,
       maxAge: this.config.getOrThrow<number>('cart.cookieTtlMs'),
     });

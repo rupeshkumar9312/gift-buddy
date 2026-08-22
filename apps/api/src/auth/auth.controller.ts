@@ -152,10 +152,18 @@ export class AuthController {
   }
 
   private setRefreshCookie(res: Response, refreshToken: string) {
+    // The web frontend and this API commonly live on different sites (e.g. a
+    // local dev frontend calling the deployed Render API, or a Vercel
+    // frontend calling a Render API) — `SameSite=Lax` cookies are never sent
+    // back on cross-site fetch/XHR calls, only on top-level navigations, so
+    // the session would silently fail to persist. `SameSite=None` is
+    // required for that cross-site case and itself requires `Secure`, which
+    // only works over HTTPS — hence this only flips in production.
+    const isProduction = this.config.get<string>('nodeEnv') === 'production';
     res.cookie(REFRESH_COOKIE, refreshToken, {
       httpOnly: true,
-      secure: this.config.get<string>('nodeEnv') === 'production',
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       path: REFRESH_COOKIE_PATH,
       maxAge: this.config.getOrThrow<number>('jwt.refreshTtlMs'),
     });

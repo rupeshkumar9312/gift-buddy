@@ -22,8 +22,17 @@ async function bootstrap() {
     }),
   );
 
+  const corsOrigins = config.get<string[]>('corsOrigins') ?? [];
+  if (corsOrigins.length === 0) {
+    // An empty allowlist means enableCors rejects every browser origin —
+    // every client-side fetch fails with an opaque "Failed to fetch" and no
+    // indication CORS was the cause. Loud at boot beats silent in prod.
+    console.warn(
+      'WARNING: CORS_ORIGINS is empty — no browser origin will be allowed to call this API. Set CORS_ORIGINS to a comma-separated list of allowed origins.',
+    );
+  }
   app.enableCors({
-    origin: config.get<string[]>('corsOrigins'),
+    origin: corsOrigins,
     credentials: true,
   });
 

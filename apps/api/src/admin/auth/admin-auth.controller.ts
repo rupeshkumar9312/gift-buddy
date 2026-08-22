@@ -73,10 +73,15 @@ export class AdminAuthController {
   }
 
   private setRefreshCookie(res: Response, refreshToken: string) {
+    // See the matching comment in auth.controller.ts — SameSite=Lax cookies
+    // never round-trip on cross-site fetch calls (a local admin dev server
+    // calling the deployed API, for instance), so this needs None+Secure
+    // whenever the API is served over HTTPS.
+    const isProduction = this.config.get<string>('nodeEnv') === 'production';
     res.cookie(REFRESH_COOKIE, refreshToken, {
       httpOnly: true,
-      secure: this.config.get<string>('nodeEnv') === 'production',
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       path: REFRESH_COOKIE_PATH,
       maxAge: this.config.getOrThrow<number>('adminJwt.refreshTtlMs'),
     });

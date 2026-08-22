@@ -6,6 +6,7 @@ import { Gift } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageBanner } from "@/components/PageBanner";
+import { AuthGate } from "@/components/AuthGate";
 import { Spinner } from "@/components/Spinner";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -191,31 +192,6 @@ export default function CheckoutPage() {
     }
   };
 
-  if (lines.length === 0 && !result) {
-    return (
-      <>
-        <PageBanner
-          title="Checkout"
-          crumbs={[
-            { label: "Home", href: "/" },
-            { label: "Cart", href: "/cart" },
-            { label: "Checkout" },
-          ]}
-        />
-        <div className="container-page py-20 text-center text-sm text-muted">
-          Your cart is empty.{" "}
-          <Link
-            href="/shop"
-            className="text-primary underline underline-offset-4"
-          >
-            Continue shopping
-          </Link>
-          .
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
       <PageBanner
@@ -227,8 +203,24 @@ export default function CheckoutPage() {
         ]}
       />
 
-      <div className="container-page py-14">
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1fr_400px]">
+      <AuthGate
+        title="Sign in to check out"
+        message="Continue with Google to complete your order — your cart will be right here waiting."
+      >
+        {lines.length === 0 && !result ? (
+          <div className="container-page py-20 text-center text-sm text-muted">
+            Your cart is empty.{" "}
+            <Link
+              href="/shop"
+              className="text-primary underline underline-offset-4"
+            >
+              Continue shopping
+            </Link>
+            .
+          </div>
+        ) : (
+          <div className="container-page py-14">
+            <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1fr_400px]">
           <div className="flex flex-col gap-10">
             {outOfArea ? (
               <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-line bg-cream px-8 py-16 text-center">
@@ -525,6 +517,8 @@ export default function CheckoutPage() {
           </aside>
         </div>
       </div>
+        )}
+      </AuthGate>
     </>
   );
 }
