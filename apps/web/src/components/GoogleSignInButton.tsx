@@ -7,6 +7,13 @@ const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
 type GoogleCredentialResponse = { credential: string };
 
+type GoogleNotification = {
+  isNotDisplayed: () => boolean;
+  isSkippedMoment: () => boolean;
+  getNotDisplayedReason: () => string;
+  getSkippedReason: () => string;
+};
+
 // Minimal shape of the Google Identity Services global — there's no
 // first-party @types package for it, and pulling in a whole community one
 // just for two methods isn't worth it.
@@ -18,12 +25,13 @@ declare global {
           initialize: (config: {
             client_id: string;
             callback: (response: GoogleCredentialResponse) => void;
+            use_fedcm_for_prompt?: boolean;
           }) => void;
           renderButton: (
             parent: HTMLElement,
             options: { theme?: string; size?: string; width?: number; text?: string }
           ) => void;
-          prompt: () => void;
+          prompt: (momentListener?: (notification: GoogleNotification) => void) => void;
         };
       };
     };
@@ -49,6 +57,14 @@ export function GoogleSignInButton({
 }) {
   const buttonRef = useRef<HTMLDivElement>(null);
   const onCredentialRef = useRef(onCredential);
+  // React's Strict Mode double-invokes effects in dev (setup → cleanup →
+  // setup again) to surface non-idempotent effects. Without this guard, that
+  // fires prompt() twice back to back — the second call supersedes/aborts
+  // the first native FedCM dialog, which looks exactly like the prompt
+  // flashing and vanishing within milliseconds. The ref survives across that
+  // synthetic double-invoke (same component instance), so it only actually
+  // runs once per real mount, and still resets fresh on each new navigation.
+  const initializedRef = useRef(false);
   // next/script's onLoad only fires for the mount that actually triggers the
   // first load — Next.js dedupes the <script> tag on later client-side
   // navigations, so a GoogleSignInButton remounted on a different gated page
@@ -64,10 +80,18 @@ export function GoogleSignInButton({
   }, [onCredential]);
 
   useEffect(() => {
-    if (!scriptLoaded || !buttonRef.current || !window.google) return;
+    if (!scriptLoaded || !buttonRef.current || !window.google || initializedRef.current) return;
+    initializedRef.current = true;
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback: (response) => onCredentialRef.current(response.credential),
+      // Classic One Tap leans on a third-party cookie + iframe, which Safari's
+      // ITP and Chrome's third-party-cookie phase-out both block — this is
+      // the single biggest reason the prompt silently never appears on
+      // mobile. FedCM is the browser-native replacement Google now
+      // recommends; where it isn't supported (Safari), this flag is a no-op
+      // and GSI falls back to the classic flow.
+      use_fedcm_for_prompt: true,
     });
     window.google.accounts.id.renderButton(buttonRef.current, {
       theme: "outline",
@@ -76,7 +100,13 @@ export function GoogleSignInButton({
       text: "continue_with",
     });
     if (autoPrompt) {
-      window.google.accounts.id.prompt();
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed()) {
+          console.warn("Google One Tap not displayed:", notification.getNotDisplayedReason());
+        } else if (notification.isSkippedMoment()) {
+          console.warn("Google One Tap skipped:", notification.getSkippedReason());
+        }
+      });
     }
   }, [scriptLoaded, autoPrompt]);
 
