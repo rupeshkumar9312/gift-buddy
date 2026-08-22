@@ -5,7 +5,7 @@ import { formatMoney } from "@/lib/format";
 export function UnderPriceBanner() {
   return (
     <section className="container-page py-8">
-      <div className="relative flex min-h-[280px] items-center overflow-hidden rounded-3xl bg-secondary">
+      {/* <div className="relative flex min-h-[280px] items-center overflow-hidden rounded-3xl bg-secondary">
         <Image
           src="https://picsum.photos/seed/under-price/1600/500"
           alt="Gifts under ₹19.99"
@@ -25,7 +25,7 @@ export function UnderPriceBanner() {
             Shop Now
           </Link>
         </div>
-      </div>
+      </div> */}
     </section>
   );
 }

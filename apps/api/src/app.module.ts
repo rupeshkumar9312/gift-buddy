@@ -13,6 +13,9 @@ import { OccasionsModule } from './occasions/occasions.module';
 import { HomeHeroModule } from './home-hero/home-hero.module';
 import { SocietiesModule } from './societies/societies.module';
 import { OutOfAreaOrdersModule } from './out-of-area-orders/out-of-area-orders.module';
+import { PromoBannersModule } from './promo-banners/promo-banners.module';
+import { SaleBannersModule } from './sale-banners/sale-banners.module';
+import { GiftKitsModule } from './gift-kits/gift-kits.module';
 import { CartModule } from './cart/cart.module';
 import { ShippingModule } from './shipping/shipping.module';
 import { CheckoutModule } from './checkout/checkout.module';
@@ -39,6 +42,9 @@ import { AdminMediaModule } from './admin/media/admin-media.module';
 import { AdminHomeHeroModule } from './admin/home-hero/admin-home-hero.module';
 import { AdminSocietiesModule } from './admin/societies/admin-societies.module';
 import { AdminOutOfAreaOrdersModule } from './admin/out-of-area-orders/admin-out-of-area-orders.module';
+import { AdminPromoBannersModule } from './admin/promo-banners/admin-promo-banners.module';
+import { AdminSaleBannersModule } from './admin/sale-banners/admin-sale-banners.module';
+import { AdminGiftKitsModule } from './admin/gift-kits/admin-gift-kits.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -61,6 +67,9 @@ import { AppService } from './app.service';
     HomeHeroModule,
     SocietiesModule,
     OutOfAreaOrdersModule,
+    PromoBannersModule,
+    SaleBannersModule,
+    GiftKitsModule,
     CartModule,
     ShippingModule,
     CheckoutModule,
@@ -87,6 +96,9 @@ import { AppService } from './app.service';
     AdminHomeHeroModule,
     AdminSocietiesModule,
     AdminOutOfAreaOrdersModule,
+    AdminPromoBannersModule,
+    AdminSaleBannersModule,
+    AdminGiftKitsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

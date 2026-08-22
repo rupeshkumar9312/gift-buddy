@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  BadgePercent,
   Building2,
   CalendarHeart,
   Gift,
@@ -13,9 +14,11 @@ import {
   LogOut,
   Mail,
   MapPinOff,
+  Megaphone,
   MessageSquareText,
   Newspaper,
   Package,
+  PackageOpen,
   ShoppingCart,
   Star,
   Tag,
@@ -35,6 +38,9 @@ const NAV_ITEMS = [
   { href: "/faqs", label: "FAQs", icon: MessageSquareText, permission: "content.read" },
   { href: "/contact-messages", label: "Contact Inbox", icon: Mail, permission: "content.read" },
   { href: "/settings/home-hero", label: "Home Hero", icon: ImageIcon, permission: "settings.write" },
+  { href: "/settings/promo-banners", label: "Promo Banners", icon: Megaphone, permission: "settings.write" },
+  { href: "/settings/sale-banners", label: "Sale Banners", icon: BadgePercent, permission: "settings.write" },
+  { href: "/settings/gift-kits", label: "Gift Kits", icon: PackageOpen, permission: "settings.write" },
   { href: "/settings/societies", label: "Societies", icon: Building2, permission: "settings.write" },
 ];
 

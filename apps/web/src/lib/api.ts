@@ -562,6 +562,53 @@ export async function getHomeHero(): Promise<HomeHero> {
   return apiFetch<HomeHero>("/home-hero");
 }
 
+// ---- Promo banners ----
+
+export type PromoBanner = {
+  id: number;
+  eyebrow: string | null;
+  heading: string;
+  subtitle: string | null;
+  ctaLabel: string;
+  ctaHref: string;
+  image: string | null;
+};
+
+export async function getPromoBanners(): Promise<PromoBanner[]> {
+  return apiFetch<PromoBanner[]>("/promo-banners");
+}
+
+// ---- Sale banners ----
+
+export type SaleBanner = {
+  id: number;
+  badge: string | null;
+  heading: string;
+  subtitle: string | null;
+  note: string | null;
+  ctaLabel: string;
+  ctaHref: string;
+  image: string | null;
+};
+
+export async function getSaleBanners(): Promise<SaleBanner[]> {
+  return apiFetch<SaleBanner[]>("/sale-banners");
+}
+
+// ---- Gift kits ----
+
+export type GiftKit = {
+  id: number;
+  title: string;
+  subtitle: string | null;
+  href: string;
+  image: string | null;
+};
+
+export async function getGiftKits(): Promise<GiftKit[]> {
+  return apiFetch<GiftKit[]>("/gift-kits");
+}
+
 // ---- FAQs ----
 
 export type FaqItem = { id: number; question: string; answer: string };

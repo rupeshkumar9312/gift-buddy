@@ -75,12 +75,6 @@ export const testimonials: Testimonial[] = [
   },
 ];
 
-export const giftKits = [
-  { slug: "for-him", title: "For Him", count: 6, image: img("kit-him", 500, 400) },
-  { slug: "for-baby", title: "For Baby", count: 7, image: img("kit-baby", 500, 400) },
-  { slug: "for-her", title: "For Her", count: 8, image: img("kit-her", 500, 400) },
-];
-
 export function getBlogPostBySlug(slug: string) {
   return blogPosts.find((p) => p.slug === slug);
 }

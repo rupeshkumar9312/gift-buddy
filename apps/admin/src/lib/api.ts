@@ -780,3 +780,160 @@ export async function updateHomeHero(accessToken: string, input: HomeHeroInput) 
     body: JSON.stringify(input),
   });
 }
+
+// ---- Promo banners ----
+
+export type AdminPromoBanner = {
+  id: number;
+  eyebrow: string | null;
+  heading: string;
+  subtitle: string | null;
+  ctaLabel: string;
+  ctaHref: string;
+  bannerImage: string | null;
+  isActive: boolean;
+  sortOrder: number;
+};
+
+export type PromoBannerInput = {
+  eyebrow?: string;
+  heading?: string;
+  subtitle?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  bannerImageUrl?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+};
+
+export async function getPromoBanners(accessToken: string) {
+  return apiFetch<AdminPromoBanner[]>("/admin/promo-banners", { accessToken });
+}
+
+export async function createPromoBanner(accessToken: string, input: PromoBannerInput) {
+  return apiFetch<AdminPromoBanner>("/admin/promo-banners", {
+    method: "POST",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updatePromoBanner(
+  accessToken: string,
+  id: number,
+  input: Partial<PromoBannerInput>,
+) {
+  return apiFetch<AdminPromoBanner>(`/admin/promo-banners/${id}`, {
+    method: "PATCH",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deletePromoBanner(accessToken: string, id: number) {
+  return apiFetch<void>(`/admin/promo-banners/${id}`, { method: "DELETE", accessToken });
+}
+
+// ---- Sale banners ----
+
+export type AdminSaleBanner = {
+  id: number;
+  badge: string | null;
+  heading: string;
+  subtitle: string | null;
+  note: string | null;
+  ctaLabel: string;
+  ctaHref: string;
+  bannerImage: string | null;
+  isActive: boolean;
+  sortOrder: number;
+};
+
+export type SaleBannerInput = {
+  badge?: string;
+  heading?: string;
+  subtitle?: string;
+  note?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  bannerImageUrl?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+};
+
+export async function getSaleBanners(accessToken: string) {
+  return apiFetch<AdminSaleBanner[]>("/admin/sale-banners", { accessToken });
+}
+
+export async function createSaleBanner(accessToken: string, input: SaleBannerInput) {
+  return apiFetch<AdminSaleBanner>("/admin/sale-banners", {
+    method: "POST",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateSaleBanner(
+  accessToken: string,
+  id: number,
+  input: Partial<SaleBannerInput>,
+) {
+  return apiFetch<AdminSaleBanner>(`/admin/sale-banners/${id}`, {
+    method: "PATCH",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteSaleBanner(accessToken: string, id: number) {
+  return apiFetch<void>(`/admin/sale-banners/${id}`, { method: "DELETE", accessToken });
+}
+
+// ---- Gift kits ----
+
+export type AdminGiftKit = {
+  id: number;
+  title: string;
+  subtitle: string | null;
+  href: string;
+  bannerImage: string | null;
+  isActive: boolean;
+  sortOrder: number;
+};
+
+export type GiftKitInput = {
+  title?: string;
+  subtitle?: string;
+  href?: string;
+  bannerImageUrl?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+};
+
+export async function getGiftKits(accessToken: string) {
+  return apiFetch<AdminGiftKit[]>("/admin/gift-kits", { accessToken });
+}
+
+export async function createGiftKit(accessToken: string, input: GiftKitInput) {
+  return apiFetch<AdminGiftKit>("/admin/gift-kits", {
+    method: "POST",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateGiftKit(
+  accessToken: string,
+  id: number,
+  input: Partial<GiftKitInput>,
+) {
+  return apiFetch<AdminGiftKit>(`/admin/gift-kits/${id}`, {
+    method: "PATCH",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteGiftKit(accessToken: string, id: number) {
+  return apiFetch<void>(`/admin/gift-kits/${id}`, { method: "DELETE", accessToken });
+}
