@@ -1,6 +1,7 @@
 import { Hero } from "@/components/home/Hero";
 import { UspStrip } from "@/components/home/UspStrip";
 import { CategoryStrip } from "@/components/home/CategoryStrip";
+import { OccasionBanner } from "@/components/home/OccasionBanner";
 import { PromoBanners } from "@/components/home/PromoBanners";
 import { FeaturedProducts } from "@/components/home/FeaturedProducts";
 import { SaleBanners } from "@/components/home/SaleBanners";
@@ -15,6 +16,7 @@ export default function Home() {
       <Hero />
       <UspStrip />
       <CategoryStrip />
+      <OccasionBanner />
       <PromoBanners />
       <FeaturedProducts />
       <SaleBanners />

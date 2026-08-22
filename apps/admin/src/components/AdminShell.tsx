@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  CalendarHeart,
   Gift,
   LayoutDashboard,
   ListTree,
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard.read" },
   { href: "/products", label: "Products", icon: Package, permission: "products.read" },
   { href: "/categories", label: "Categories", icon: ListTree, permission: "products.read" },
+  { href: "/occasions", label: "Occasions", icon: CalendarHeart, permission: "products.read" },
   { href: "/orders", label: "Orders", icon: ShoppingCart, permission: "orders.read" },
   { href: "/coupons", label: "Coupons", icon: Tag, permission: "marketing.write" },
   { href: "/reviews", label: "Reviews", icon: Star, permission: "reviews.moderate" },

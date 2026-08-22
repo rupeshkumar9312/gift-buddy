@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CategoriesModule } from './categories/categories.module';
 import { ProductsModule } from './products/products.module';
+import { OccasionsModule } from './occasions/occasions.module';
 import { CartModule } from './cart/cart.module';
 import { ShippingModule } from './shipping/shipping.module';
 import { CheckoutModule } from './checkout/checkout.module';
@@ -24,6 +25,7 @@ import { AdminAuthModule } from './admin/auth/admin-auth.module';
 import { AdminDashboardModule } from './admin/dashboard/admin-dashboard.module';
 import { AdminProductsModule } from './admin/products/admin-products.module';
 import { AdminCategoriesModule } from './admin/categories/admin-categories.module';
+import { AdminOccasionsModule } from './admin/occasions/admin-occasions.module';
 import { AdminOrdersModule } from './admin/orders/admin-orders.module';
 import { AdminCouponsModule } from './admin/coupons/admin-coupons.module';
 import { AdminReviewsModule } from './admin/reviews/admin-reviews.module';
@@ -49,6 +51,7 @@ import { AppService } from './app.service';
     UsersModule,
     CategoriesModule,
     ProductsModule,
+    OccasionsModule,
     CartModule,
     ShippingModule,
     CheckoutModule,
@@ -64,6 +67,7 @@ import { AppService } from './app.service';
     AdminDashboardModule,
     AdminProductsModule,
     AdminCategoriesModule,
+    AdminOccasionsModule,
     AdminOrdersModule,
     AdminCouponsModule,
     AdminReviewsModule,

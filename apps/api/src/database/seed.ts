@@ -13,7 +13,9 @@ import { Review } from '../reviews/entities/review.entity';
 import { Coupon } from '../coupons/entities/coupon.entity';
 import { Faq } from '../content/entities/faq.entity';
 import { BlogPost } from '../content/entities/blog-post.entity';
+import { Occasion } from '../occasions/entities/occasion.entity';
 import { seedCategories, seedProducts } from './seed-data';
+import { seedOccasions } from './occasion-seed-data';
 import { seedPermissions, seedRoles, seedSuperAdmin } from './admin-seed-data';
 import {
   seedBlogPosts,
@@ -47,6 +49,9 @@ async function seed() {
     'faqs',
     'blog_posts',
     'users',
+    'occasion_products',
+    'occasion_categories',
+    'occasions',
     'product_images',
     'products',
     'categories',
@@ -130,6 +135,51 @@ async function seed() {
     }
 
     productsBySlug.set(product.slug, product);
+  }
+
+  console.log(`Seeding ${seedOccasions.length} occasions...`);
+  const occasionRepo = dataSource.getRepository(Occasion);
+  for (const source of seedOccasions) {
+    const bannerAsset = await mediaRepo.save(
+      mediaRepo.create({
+        url: source.bannerImage,
+        provider: 'picsum',
+        altText: source.name,
+      }),
+    );
+    const categories = source.categorySlugs.map((slug) => {
+      const category = categoriesBySlug.get(slug);
+      if (!category) {
+        throw new Error(
+          `Seed occasion "${source.slug}" references unknown category "${slug}"`,
+        );
+      }
+      return category;
+    });
+    const products = source.productSlugs.map((slug) => {
+      const product = productsBySlug.get(slug);
+      if (!product) {
+        throw new Error(
+          `Seed occasion "${source.slug}" references unknown product "${slug}"`,
+        );
+      }
+      return product;
+    });
+    await occasionRepo.save(
+      occasionRepo.create({
+        slug: source.slug,
+        name: source.name,
+        tagline: source.tagline,
+        description: source.description,
+        bannerImageAssetId: bannerAsset.id,
+        startsAt: source.startsAt,
+        endsAt: source.endsAt,
+        isActive: source.isActive,
+        sortOrder: source.sortOrder,
+        categories,
+        products,
+      }),
+    );
   }
 
   console.log('Seeding shipping methods...');

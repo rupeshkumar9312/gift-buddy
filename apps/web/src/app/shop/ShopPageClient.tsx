@@ -13,12 +13,17 @@ import { formatMoney } from "@/lib/format";
 
 type SortKey = "featured" | "price-asc" | "price-desc" | "name";
 
+// occasionCategorySlugs is optional and only ever populated by the
+// /occasions/[slug] page — a per-occasion tag layer, distinct from the
+// product's real `category`, that /shop itself never supplies.
+type ShopProduct = Product & { occasionCategorySlugs?: string[] };
+
 export function ShopPageClient({
   categories,
   products,
 }: {
   categories: Category[];
-  products: Product[];
+  products: ShopProduct[];
 }) {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("category");
@@ -49,7 +54,9 @@ export function ShopPageClient({
     let list = products.filter((p) => {
       const price = p.salePrice ?? p.price;
       const matchesCategory =
-        selectedCategories.length === 0 || selectedCategories.includes(p.category);
+        selectedCategories.length === 0 ||
+        selectedCategories.includes(p.category) ||
+        p.occasionCategorySlugs?.some((slug) => selectedCategories.includes(slug));
       const matchesRating = p.rating >= minRating;
       const matchesPrice = price <= maxPrice;
       return matchesCategory && matchesRating && matchesPrice;

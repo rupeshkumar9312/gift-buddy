@@ -1,6 +1,11 @@
 import type { Category, Product } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api/v1";
+// iOS simulator/web reach the host machine via localhost; Android emulator
+// needs 10.0.2.2; a physical device needs the machine's LAN IP — see
+// .env.example. Same backend as apps/web, just a different base URL source
+// (Expo inlines EXPO_PUBLIC_-prefixed vars at build time; Next.js uses
+// NEXT_PUBLIC_ for the same purpose).
+export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3001/api/v1";
 
 type ApiCategory = {
   slug: string;
@@ -57,7 +62,6 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
     credentials: "include",
-    cache: "no-store",
   });
 
   if (!res.ok) {
@@ -134,6 +138,12 @@ export async function getRelatedProducts(slug: string, limit = 4): Promise<Produ
 }
 
 // ---- Cart ----
+// The API tracks a guest cart via an httpOnly cookie (see
+// apps/api/src/cart/cart.controller.ts). Unlike a browser, React Native's
+// fetch isn't sandboxed by CORS/same-origin rules, and the platform's
+// native networking stack (NSURLSession / OkHttp) persists and resends
+// cookies automatically — so this works the same way it does on the web
+// with no extra cookie-jar plumbing needed.
 
 export type CartItem = {
   productId: number;
@@ -199,6 +209,20 @@ export async function removeCartItem(productId: number, accessToken?: string | n
     method: "DELETE",
     headers: authHeader(accessToken),
   });
+}
+
+// ---- Coupons (cart) ----
+
+export async function applyCoupon(code: string, accessToken?: string | null): Promise<Cart> {
+  return apiFetch<Cart>("/cart/coupon", {
+    method: "POST",
+    headers: authHeader(accessToken),
+    body: JSON.stringify({ code }),
+  });
+}
+
+export async function removeCoupon(accessToken?: string | null): Promise<Cart> {
+  return apiFetch<Cart>("/cart/coupon", { method: "DELETE", headers: authHeader(accessToken) });
 }
 
 // ---- Shipping ----
@@ -333,124 +357,6 @@ export async function cancelOrder(
   });
 }
 
-// ---- Coupons (cart) ----
-
-export async function applyCoupon(code: string, accessToken?: string | null): Promise<Cart> {
-  return apiFetch<Cart>("/cart/coupon", {
-    method: "POST",
-    headers: authHeader(accessToken),
-    body: JSON.stringify({ code }),
-  });
-}
-
-export async function removeCoupon(accessToken?: string | null): Promise<Cart> {
-  return apiFetch<Cart>("/cart/coupon", { method: "DELETE", headers: authHeader(accessToken) });
-}
-
-// ---- Reviews ----
-
-export type Review = {
-  id: number;
-  rating: number;
-  title: string;
-  body: string;
-  authorName: string;
-  createdAt: string;
-};
-
-export type FeaturedReview = Review & {
-  productName: string;
-  productSlug: string;
-};
-
-export async function getProductReviews(
-  slug: string,
-  page = 1
-): Promise<Paginated<Review>> {
-  return apiFetch<Paginated<Review>>(`/products/${slug}/reviews?page=${page}`);
-}
-
-export async function getFeaturedReviews(limit = 6): Promise<FeaturedReview[]> {
-  return apiFetch<FeaturedReview[]>(`/reviews/featured?limit=${limit}`);
-}
-
-export async function submitReview(
-  slug: string,
-  accessToken: string,
-  input: { rating: number; title: string; body: string }
-): Promise<Review> {
-  return apiFetch<Review>(`/products/${slug}/reviews`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${accessToken}` },
-    body: JSON.stringify(input),
-  });
-}
-
-// ---- Wishlist ----
-
-export type WishlistItem = {
-  productId: number;
-  slug: string;
-  name: string;
-  image: string | null;
-  price: number;
-  salePrice: number | null;
-  inStock: boolean;
-  addedAt: string;
-};
-
-export async function getWishlist(accessToken: string): Promise<WishlistItem[]> {
-  return apiFetch<WishlistItem[]>("/wishlist", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-}
-
-export async function addWishlistItem(
-  accessToken: string,
-  productId: number
-): Promise<WishlistItem[]> {
-  return apiFetch<WishlistItem[]>(`/wishlist/items/${productId}`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-}
-
-export async function removeWishlistItem(
-  accessToken: string,
-  productId: number
-): Promise<WishlistItem[]> {
-  return apiFetch<WishlistItem[]>(`/wishlist/items/${productId}`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-}
-
-// ---- Blog ----
-
-export type BlogPostSummary = {
-  slug: string;
-  title: string;
-  excerpt: string;
-  coverImage: string | null;
-  authorName: string;
-  publishedAt: string | null;
-};
-
-export type BlogPostDetail = BlogPostSummary & { content: string };
-
-export async function getBlogPosts(): Promise<BlogPostSummary[]> {
-  const result = await apiFetch<Paginated<BlogPostSummary>>("/blog?limit=50");
-  return result.data;
-}
-
-export async function getBlogPost(slug: string): Promise<BlogPostDetail | null> {
-  try {
-    return await apiFetch<BlogPostDetail>(`/blog/${slug}`);
-  } catch {
-    return null;
-  }
-}
-
 // ---- Occasions ----
 
 export type Occasion = {
@@ -464,7 +370,7 @@ export type Occasion = {
 
 // occasionCategorySlugs marks which of this occasion's own (per-occasion,
 // otherwise-invisible) categories a product is tagged with — distinct
-// from the product's real `category`, which drives general site browsing.
+// from the product's real `category`, which drives general shop browsing.
 export type OccasionProduct = Product & { occasionCategorySlugs: string[] };
 
 export type OccasionDetail = Occasion & {
@@ -494,34 +400,4 @@ export async function getOccasion(slug: string): Promise<OccasionDetail | null> 
   } catch {
     return null;
   }
-}
-
-// ---- FAQs ----
-
-export type FaqItem = { id: number; question: string; answer: string };
-export type GroupedFaqs = { shipping: FaqItem[]; returns: FaqItem[]; orders: FaqItem[] };
-
-export async function getFaqs(): Promise<GroupedFaqs> {
-  return apiFetch<GroupedFaqs>("/faqs");
-}
-
-// ---- Contact & newsletter ----
-
-export async function submitContact(input: {
-  name: string;
-  email: string;
-  subject?: string;
-  message: string;
-}): Promise<{ received: true }> {
-  return apiFetch<{ received: true }>("/contact", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
-}
-
-export async function subscribeNewsletter(email: string): Promise<{ subscribed: true }> {
-  return apiFetch<{ subscribed: true }>("/newsletter", {
-    method: "POST",
-    body: JSON.stringify({ email }),
-  });
 }

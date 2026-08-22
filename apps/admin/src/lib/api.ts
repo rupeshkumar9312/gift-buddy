@@ -139,6 +139,117 @@ export async function deleteCategory(accessToken: string, id: number) {
   return apiFetch<void>(`/admin/categories/${id}`, { method: "DELETE", accessToken });
 }
 
+// ---- Occasions ----
+
+export type AdminOccasion = {
+  id: number;
+  slug: string;
+  name: string;
+  tagline: string | null;
+  description: string | null;
+  bannerImage: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  categoryIds: number[];
+  categories: { id: number; slug: string; name: string }[];
+  productIds: number[];
+  products: { id: number; slug: string; name: string }[];
+  occasionCategories: {
+    id: number;
+    name: string;
+    slug: string;
+    sortOrder: number;
+    productIds: number[];
+  }[];
+};
+
+export type OccasionCategoryInput = {
+  slug: string;
+  name: string;
+  sortOrder?: number;
+  productIds?: number[];
+};
+
+export type OccasionInput = {
+  slug: string;
+  name: string;
+  tagline?: string;
+  description?: string;
+  bannerImageUrl?: string;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  isActive?: boolean;
+  sortOrder?: number;
+  categoryIds?: number[];
+  productIds?: number[];
+};
+
+export async function getOccasions(accessToken: string) {
+  return apiFetch<AdminOccasion[]>("/admin/occasions", { accessToken });
+}
+
+export async function createOccasion(accessToken: string, input: OccasionInput) {
+  return apiFetch<AdminOccasion>("/admin/occasions", {
+    method: "POST",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateOccasion(
+  accessToken: string,
+  id: number,
+  input: Partial<OccasionInput>
+) {
+  return apiFetch<AdminOccasion>(`/admin/occasions/${id}`, {
+    method: "PATCH",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteOccasion(accessToken: string, id: number) {
+  return apiFetch<void>(`/admin/occasions/${id}`, { method: "DELETE", accessToken });
+}
+
+export async function createOccasionCategory(
+  accessToken: string,
+  occasionId: number,
+  input: OccasionCategoryInput
+) {
+  return apiFetch<AdminOccasion>(`/admin/occasions/${occasionId}/categories`, {
+    method: "POST",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateOccasionCategory(
+  accessToken: string,
+  occasionId: number,
+  categoryId: number,
+  input: Partial<OccasionCategoryInput>
+) {
+  return apiFetch<AdminOccasion>(`/admin/occasions/${occasionId}/categories/${categoryId}`, {
+    method: "PATCH",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteOccasionCategory(
+  accessToken: string,
+  occasionId: number,
+  categoryId: number
+) {
+  return apiFetch<AdminOccasion>(`/admin/occasions/${occasionId}/categories/${categoryId}`, {
+    method: "DELETE",
+    accessToken,
+  });
+}
+
 // ---- Products ----
 
 export type AdminProductSummary = {
