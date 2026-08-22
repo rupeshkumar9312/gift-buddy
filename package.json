@@ -5,6 +5,14 @@
   "workspaces": [
     "apps/*"
   ],
+  "overrides": {
+    "@tailwindcss/postcss": {
+      "tailwindcss": "^4"
+    },
+    "react-native-css-interop": {
+      "react-native": "0.81.5"
+    }
+  },
   "scripts": {
     "dev:web": "npm run dev -w @giftbuddy/web",
     "dev:admin": "npm run dev -w @giftbuddy/admin",
