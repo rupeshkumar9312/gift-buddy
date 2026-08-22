@@ -1,6 +1,6 @@
 import { ReactNode, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, Text, View } from "react-native";
-import { SlidersHorizontal, X } from "lucide-react-native";
+import { Gift, SlidersHorizontal, X } from "lucide-react-native";
 import { ProductCard } from "@/components/ProductCard";
 import { StarRating } from "@/components/StarRating";
 import type { Category, Product } from "@/lib/types";
@@ -16,7 +16,6 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "name", label: "Name: A to Z" },
 ];
 
-const MAX_PRICE_CEILING = 200;
 const RATING_OPTIONS = [4, 3, 2, 0];
 
 // occasionCategorySlugs is only ever present on products coming from an
@@ -36,9 +35,15 @@ export function CatalogBrowser({
   categories: Category[];
   products: CatalogProduct[] | null;
 }) {
+  // `products` starts null (still loading) then becomes the real array, so
+  // a price cap computed once from it can't be used as a fixed default —
+  // it would either clip the real catalog or (computed from an empty
+  // array) clip everything. `null` means "no cap", so "Any" always
+  // genuinely means unlimited regardless of when data loads, instead of
+  // secretly capping at whatever the highest preset happened to be.
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [minRating, setMinRating] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(MAX_PRICE_CEILING);
+  const [maxPrice, setMaxPrice] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<SortKey>("featured");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -49,7 +54,7 @@ export function CatalogBrowser({
   const clearFilters = () => {
     setSelectedCategories([]);
     setMinRating(0);
-    setMaxPrice(MAX_PRICE_CEILING);
+    setMaxPrice(null);
   };
 
   const filtered = useMemo(() => {
@@ -61,7 +66,7 @@ export function CatalogBrowser({
         selectedCategories.includes(p.category) ||
         p.occasionCategorySlugs?.some((slug) => selectedCategories.includes(slug));
       const matchesRating = p.rating >= minRating;
-      const matchesPrice = price <= maxPrice;
+      const matchesPrice = maxPrice === null || price <= maxPrice;
       return matchesCategory && matchesRating && matchesPrice;
     });
 
@@ -77,11 +82,17 @@ export function CatalogBrowser({
     return list;
   }, [products, selectedCategories, minRating, maxPrice, sortBy]);
 
-  const activeFilterCount = selectedCategories.length + (minRating > 0 ? 1 : 0) + (maxPrice < MAX_PRICE_CEILING ? 1 : 0);
-  const selectedCategoryNames = categories
-    .filter((c) => selectedCategories.includes(c.slug))
-    .map((c) => c.name)
-    .join(", ");
+  const activeFilterCount = selectedCategories.length + (minRating > 0 ? 1 : 0) + (maxPrice !== null ? 1 : 0);
+  const selectedCategoryDetails = categories.filter((c) => selectedCategories.includes(c.slug));
+  const selectedCategoryNames = selectedCategoryDetails.map((c) => c.name).join(", ");
+
+  // Distinguishes "this category simply has nothing in it yet" from "the
+  // user's own price/rating filter narrowed a populated category to zero"
+  // — `category.count` is the category's real total, unaffected by the
+  // price/rating filters below, so it stays truthful even when `filtered`
+  // is empty for an unrelated reason.
+  const isEmptyCategory =
+    selectedCategoryDetails.length > 0 && selectedCategoryDetails.every((c) => c.count === 0);
 
   return (
     <>
@@ -134,6 +145,28 @@ export function CatalogBrowser({
         ListEmptyComponent={
           products === null ? (
             <ActivityIndicator color={colors.primary} className="mt-10" />
+          ) : isEmptyCategory ? (
+            <View className="mx-5 mt-6 items-center rounded-3xl bg-cream px-8 py-12">
+              <View className="h-16 w-16 items-center justify-center rounded-full bg-white">
+                <Gift size={28} color={colors.primary} />
+              </View>
+              <Text className="mt-6 font-script text-2xl text-primary">Coming Soon</Text>
+              <Text className="mt-1 text-center font-sans-medium text-lg text-ink">
+                {selectedCategoryNames} is on its way
+              </Text>
+              <Text className="mt-3 text-center text-sm leading-relaxed text-muted">
+                We&apos;re busy wrapping up something special for this collection. Check back
+                soon — new gifts are added all the time.
+              </Text>
+              <Pressable
+                onPress={clearFilters}
+                className="mt-6 rounded-full bg-primary px-7 py-3"
+              >
+                <Text className="font-sans-medium text-xs uppercase tracking-wide text-white">
+                  Browse All Gifts
+                </Text>
+              </Pressable>
+            </View>
           ) : (
             <Text className="mt-10 text-center text-sm text-muted">No products match your filters.</Text>
           )
@@ -197,19 +230,19 @@ export function CatalogBrowser({
             </View>
 
             <Text className="mb-3 mt-7 text-sm font-sans-semibold uppercase tracking-wide text-muted">
-              Max Price: {formatMoney(maxPrice)}
+              Max Price: {maxPrice === null ? "Any" : formatMoney(maxPrice)}
             </Text>
             <View className="flex-row flex-wrap gap-2">
-              {[50, 100, 150, MAX_PRICE_CEILING].map((price) => (
+              {[50, 100, 150, null].map((price) => (
                 <Pressable
-                  key={price}
+                  key={price ?? "any"}
                   onPress={() => setMaxPrice(price)}
                   className={`rounded-full border px-4 py-2 ${
                     maxPrice === price ? "border-primary bg-cream" : "border-line"
                   }`}
                 >
                   <Text className="text-xs text-ink">
-                    {price === MAX_PRICE_CEILING ? "Any" : `Up to ${formatMoney(price)}`}
+                    {price === null ? "Any" : `Up to ${formatMoney(price)}`}
                   </Text>
                 </Pressable>
               ))}

@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { LayoutGrid, List, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
+import { Gift, LayoutGrid, List, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
 import type { Category, Product } from "@/lib/types";
 import { ProductCard } from "@/components/ProductCard";
 import { StarRating } from "@/components/StarRating";
@@ -28,11 +28,20 @@ export function ShopPageClient({
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("category");
 
+  // The slider's ceiling must scale with the real catalog — a fixed cap
+  // silently (and permanently, since the slider can't be dragged past its
+  // own max) hides any product priced above it. Rounding up to the nearest
+  // 50 keeps the ceiling a round number rather than an oddly-specific price.
+  const priceCeiling = useMemo(() => {
+    const highest = products.reduce((max, p) => Math.max(max, p.salePrice ?? p.price), 0);
+    return Math.max(200, Math.ceil(highest / 50) * 50);
+  }, [products]);
+
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
     initialCategory ? [initialCategory] : []
   );
   const [minRating, setMinRating] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(200);
+  const [maxPrice, setMaxPrice] = useState(priceCeiling);
   const [sortBy, setSortBy] = useState<SortKey>("featured");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -47,7 +56,7 @@ export function ShopPageClient({
   const clearFilters = () => {
     setSelectedCategories([]);
     setMinRating(0);
-    setMaxPrice(200);
+    setMaxPrice(priceCeiling);
   };
 
   const filtered = useMemo(() => {
@@ -74,7 +83,17 @@ export function ShopPageClient({
     return list;
   }, [products, selectedCategories, minRating, maxPrice, sortBy]);
 
-  const activeFilterCount = selectedCategories.length + (minRating > 0 ? 1 : 0) + (maxPrice < 200 ? 1 : 0);
+  const activeFilterCount =
+    selectedCategories.length + (minRating > 0 ? 1 : 0) + (maxPrice < priceCeiling ? 1 : 0);
+
+  // Distinguishes "this category simply has nothing in it yet" from "the
+  // user's own price/rating filter narrowed a populated category to zero"
+  // — `category.count` is the category's real total, unaffected by the
+  // price/rating filters below, so it stays truthful even when `filtered`
+  // is empty for an unrelated reason.
+  const selectedCategoryDetails = categories.filter((c) => selectedCategories.includes(c.slug));
+  const isEmptyCategory =
+    selectedCategoryDetails.length > 0 && selectedCategoryDetails.every((c) => c.count === 0);
 
   const filterPanel = (
     <div className="flex flex-col gap-8">
@@ -105,7 +124,7 @@ export function ShopPageClient({
         <input
           type="range"
           min={10}
-          max={200}
+          max={priceCeiling}
           value={maxPrice}
           onChange={(e) => setMaxPrice(Number(e.target.value))}
           className="w-full accent-[#be7374]"
@@ -212,7 +231,29 @@ export function ShopPageClient({
           </div>
 
           {filtered.length === 0 ? (
-            <p className="py-20 text-center text-muted">No products match your filters.</p>
+            isEmptyCategory ? (
+              <div className="mx-auto my-10 flex max-w-lg flex-col items-center rounded-3xl bg-cream px-8 py-16 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-primary shadow-sm">
+                  <Gift size={28} />
+                </div>
+                <p className="mt-6 font-script text-3xl text-primary">Coming Soon</p>
+                <h3 className="mt-1 text-xl font-medium text-ink">
+                  {selectedCategoryDetails.map((c) => c.name).join(", ")} is on its way
+                </h3>
+                <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted">
+                  We&apos;re busy wrapping up something special for this collection. Check back
+                  soon — new gifts are added all the time.
+                </p>
+                <button
+                  onClick={clearFilters}
+                  className="mt-7 rounded-full bg-primary px-7 py-3 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark"
+                >
+                  Browse All Gifts
+                </button>
+              </div>
+            ) : (
+              <p className="py-20 text-center text-muted">No products match your filters.</p>
+            )
           ) : view === "grid" ? (
             <div className="mt-10 grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3">
               {filtered.map((product) => (

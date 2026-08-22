@@ -23,9 +23,9 @@ export class AddressDto {
   line1: string;
 
   @IsString()
-  @IsOptional()
+  @MinLength(1)
   @MaxLength(255)
-  line2?: string;
+  line2: string;
 
   @IsString()
   @MinLength(1)

@@ -17,7 +17,11 @@ export default function ProductsPage() {
 
   const load = () => {
     if (!accessToken) return;
-    getProducts(accessToken, { search: search || undefined, page })
+    // Matches the Occasions list's convention: never hide a row from the
+    // admin, just badge its status — the existing Active/Inactive badge
+    // below and the edit form's "Active" checkbox are otherwise unreachable
+    // for any product an admin has deactivated.
+    getProducts(accessToken, { search: search || undefined, page, includeInactive: true })
       .then(setResult)
       .catch(() => undefined);
   };

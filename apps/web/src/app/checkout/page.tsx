@@ -12,8 +12,10 @@ import {
   devConfirmPayment,
   getCheckoutConfig,
   getShippingMethods,
+  getSocieties,
   type CheckoutResult,
   type ShippingMethod,
+  type Society,
 } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
 import { StripePaymentForm } from "./StripePaymentForm";
@@ -44,7 +46,7 @@ const EMPTY_FORM: FormState = {
   city: "",
   region: "",
   postalCode: "",
-  country: "US",
+  country: "IN",
 };
 
 export default function CheckoutPage() {
@@ -53,6 +55,7 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [societies, setSocieties] = useState<Society[]>([]);
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [shippingMethodId, setShippingMethodId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -71,6 +74,9 @@ export default function CheckoutPage() {
     getCheckoutConfig()
       .then((config) => setGatewayEnabled(config.gatewayEnabled))
       .catch(() => undefined);
+    getSocieties()
+      .then(setSocieties)
+      .catch(() => undefined);
   }, []);
 
   const [prefilled, setPrefilled] = useState(false);
@@ -85,9 +91,12 @@ export default function CheckoutPage() {
     }));
   }
 
-  const selectedShipping = shippingMethods.find((m) => m.id === shippingMethodId);
+  const selectedShipping = shippingMethods.find(
+    (m) => m.id === shippingMethodId,
+  );
   const shippingCost = selectedShipping
-    ? selectedShipping.freeOverAmount !== null && subtotal >= selectedShipping.freeOverAmount
+    ? selectedShipping.freeOverAmount !== null &&
+      subtotal >= selectedShipping.freeOverAmount
       ? 0
       : selectedShipping.price
     : 0;
@@ -99,21 +108,24 @@ export default function CheckoutPage() {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await checkout({
-        email: form.email,
-        shippingAddress: {
-          firstName: form.firstName,
-          lastName: form.lastName,
-          line1: form.line1,
-          line2: form.line2 || undefined,
-          city: form.city,
-          region: form.region,
-          postalCode: form.postalCode,
-          country: form.country,
-          phone: form.phone || undefined,
+      const res = await checkout(
+        {
+          email: form.email,
+          shippingAddress: {
+            firstName: form.firstName,
+            lastName: form.lastName,
+            line1: form.line1,
+            line2: form.line2,
+            city: form.city,
+            region: form.region,
+            postalCode: form.postalCode,
+            country: form.country,
+            phone: form.phone || undefined,
+          },
+          shippingMethodId,
         },
-        shippingMethodId,
-      }, accessToken);
+        accessToken,
+      );
       if (res.paymentMethod === "cod") {
         await refreshCart();
         router.push(`/checkout/success/${res.orderNumber}`);
@@ -121,7 +133,11 @@ export default function CheckoutPage() {
       }
       setResult(res);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't start checkout. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Couldn't start checkout. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -145,11 +161,18 @@ export default function CheckoutPage() {
       <>
         <PageBanner
           title="Checkout"
-          crumbs={[{ label: "Home", href: "/" }, { label: "Cart", href: "/cart" }, { label: "Checkout" }]}
+          crumbs={[
+            { label: "Home", href: "/" },
+            { label: "Cart", href: "/cart" },
+            { label: "Checkout" },
+          ]}
         />
         <div className="container-page py-20 text-center text-sm text-muted">
           Your cart is empty.{" "}
-          <Link href="/shop" className="text-primary underline underline-offset-4">
+          <Link
+            href="/shop"
+            className="text-primary underline underline-offset-4"
+          >
             Continue shopping
           </Link>
           .
@@ -162,7 +185,11 @@ export default function CheckoutPage() {
     <>
       <PageBanner
         title="Checkout"
-        crumbs={[{ label: "Home", href: "/" }, { label: "Cart", href: "/cart" }, { label: "Checkout" }]}
+        crumbs={[
+          { label: "Home", href: "/" },
+          { label: "Cart", href: "/cart" },
+          { label: "Checkout" },
+        ]}
       />
 
       <div className="container-page py-14">
@@ -177,14 +204,18 @@ export default function CheckoutPage() {
                       required
                       placeholder="First name"
                       value={form.firstName}
-                      onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, firstName: e.target.value })
+                      }
                       className={inputClass}
                     />
                     <input
                       required
                       placeholder="Last name"
                       value={form.lastName}
-                      onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, lastName: e.target.value })
+                      }
                       className={inputClass}
                     />
                     <input
@@ -192,55 +223,81 @@ export default function CheckoutPage() {
                       type="email"
                       placeholder="Email address"
                       value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, email: e.target.value })
+                      }
                       className={`sm:col-span-2 ${inputClass}`}
                     />
                     <input
                       placeholder="Phone"
                       value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, phone: e.target.value })
+                      }
                       className={inputClass}
                     />
                     <input
                       required
-                      placeholder="Country (e.g. US)"
+                      placeholder="Country (e.g. IN)"
                       maxLength={2}
                       value={form.country}
-                      onChange={(e) => setForm({ ...form, country: e.target.value.toUpperCase() })}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          country: e.target.value.toUpperCase(),
+                        })
+                      }
                       className={inputClass}
                     />
                     <input
                       required
                       placeholder="Street address"
                       value={form.line1}
-                      onChange={(e) => setForm({ ...form, line1: e.target.value })}
-                      className={`sm:col-span-2 ${inputClass}`}
-                    />
-                    <input
-                      placeholder="Apartment, suite, etc. (optional)"
-                      value={form.line2}
-                      onChange={(e) => setForm({ ...form, line2: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, line1: e.target.value })
+                      }
                       className={`sm:col-span-2 ${inputClass}`}
                     />
                     <input
                       required
+                      list="society-options"
+                      placeholder="Society / apartment name"
+                      value={form.line2}
+                      onChange={(e) =>
+                        setForm({ ...form, line2: e.target.value })
+                      }
+                      className={`sm:col-span-2 ${inputClass}`}
+                    />
+                    <datalist id="society-options">
+                      {societies.map((society) => (
+                        <option key={society.id} value={society.name} />
+                      ))}
+                    </datalist>
+                    <input
+                      required
                       placeholder="City"
                       value={form.city}
-                      onChange={(e) => setForm({ ...form, city: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, city: e.target.value })
+                      }
                       className={inputClass}
                     />
                     <input
                       required
                       placeholder="State / Region"
                       value={form.region}
-                      onChange={(e) => setForm({ ...form, region: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, region: e.target.value })
+                      }
                       className={inputClass}
                     />
                     <input
                       required
                       placeholder="ZIP / Postal code"
                       value={form.postalCode}
-                      onChange={(e) => setForm({ ...form, postalCode: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, postalCode: e.target.value })
+                      }
                       className={`sm:col-span-2 ${inputClass}`}
                     />
                   </div>
@@ -254,7 +311,9 @@ export default function CheckoutPage() {
                         <label
                           key={method.id}
                           className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border px-4 py-3.5 text-sm transition ${
-                            shippingMethodId === method.id ? "border-primary bg-cream" : "border-line"
+                            shippingMethodId === method.id
+                              ? "border-primary bg-cream"
+                              : "border-line"
                           }`}
                         >
                           <span className="flex items-center gap-3">
@@ -268,7 +327,8 @@ export default function CheckoutPage() {
                             {method.name}
                           </span>
                           <span className="text-muted">
-                            {method.freeOverAmount !== null && subtotal >= method.freeOverAmount
+                            {method.freeOverAmount !== null &&
+                            subtotal >= method.freeOverAmount
                               ? "Free"
                               : formatMoney(method.price)}
                           </span>
@@ -300,8 +360,14 @@ export default function CheckoutPage() {
               <div>
                 <h2 className="text-lg font-medium">Payment</h2>
                 <p className="mt-2 text-sm text-muted">
-                  Order <span className="font-medium text-ink">{result.orderNumber}</span> — charging{" "}
-                  <span className="font-medium text-ink">{formatMoney(result.total, result.currency)}</span>
+                  Order{" "}
+                  <span className="font-medium text-ink">
+                    {result.orderNumber}
+                  </span>{" "}
+                  — charging{" "}
+                  <span className="font-medium text-ink">
+                    {formatMoney(result.total, result.currency)}
+                  </span>
                 </p>
 
                 {error && (
@@ -314,16 +380,19 @@ export default function CheckoutPage() {
                   {result.devMode ? (
                     <div className="rounded-xl border border-dashed border-line bg-cream p-6 text-sm">
                       <p className="text-muted">
-                        No Stripe account is configured for this environment, so payment is
-                        simulated. In production this step collects a real card via Stripe
-                        Elements and charges it in Stripe test mode.
+                        No Stripe account is configured for this environment, so
+                        payment is simulated. In production this step collects a
+                        real card via Stripe Elements and charges it in Stripe
+                        test mode.
                       </p>
                       <button
                         onClick={handleDevConfirm}
                         disabled={confirming}
                         className="mt-4 w-full rounded-full bg-primary py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {confirming ? "Confirming…" : "Simulate Payment (Dev Mode)"}
+                        {confirming
+                          ? "Confirming…"
+                          : "Simulate Payment (Dev Mode)"}
                       </button>
                     </div>
                   ) : result.publishableKey && result.clientSecret ? (
@@ -351,14 +420,22 @@ export default function CheckoutPage() {
                   <li key={line.productId} className="flex items-center gap-3">
                     <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-white">
                       {line.image && (
-                        <Image src={line.image} alt={line.name} fill className="object-cover" sizes="56px" />
+                        <Image
+                          src={line.image}
+                          alt={line.name}
+                          fill
+                          className="object-cover"
+                          sizes="56px"
+                        />
                       )}
                     </div>
                     <div className="flex-1 text-sm">
                       <p className="font-medium text-ink">{line.name}</p>
                       <p className="text-muted">Qty {line.quantity}</p>
                     </div>
-                    <span className="text-sm font-medium">{formatMoney(line.lineTotal)}</span>
+                    <span className="text-sm font-medium">
+                      {formatMoney(line.lineTotal)}
+                    </span>
                   </li>
                 ))
               )}
@@ -371,12 +448,16 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between text-muted">
                 <span>Shipping</span>
-                <span className="text-ink">{shippingCost === 0 ? "Free" : formatMoney(shippingCost)}</span>
+                <span className="text-ink">
+                  {shippingCost === 0 ? "Free" : formatMoney(shippingCost)}
+                </span>
               </div>
               {discountTotal > 0 && (
                 <div className="flex justify-between text-muted">
                   <span>Discount{couponCode ? ` (${couponCode})` : ""}</span>
-                  <span className="text-primary">-{formatMoney(discountTotal)}</span>
+                  <span className="text-primary">
+                    -{formatMoney(discountTotal)}
+                  </span>
                 </div>
               )}
               <div className="flex justify-between border-t border-line pt-3 text-base font-semibold text-ink">

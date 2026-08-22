@@ -343,6 +343,7 @@ export type AdminOrderSummary = {
   id: number;
   orderNumber: string;
   email: string;
+  phone: string | null;
   status: string;
   total: number;
   currency: string;
@@ -476,6 +477,45 @@ export async function updateCoupon(accessToken: string, id: number, input: Parti
 
 export async function deleteCoupon(accessToken: string, id: number) {
   return apiFetch<void>(`/admin/coupons/${id}`, { method: "DELETE", accessToken });
+}
+
+// ---- Societies ----
+
+export type Society = {
+  id: number;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SocietyInput = {
+  name: string;
+  isActive?: boolean;
+};
+
+export async function getSocieties(accessToken: string) {
+  return apiFetch<Society[]>("/admin/societies", { accessToken });
+}
+
+export async function createSociety(accessToken: string, input: SocietyInput) {
+  return apiFetch<Society>("/admin/societies", {
+    method: "POST",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateSociety(accessToken: string, id: number, input: Partial<SocietyInput>) {
+  return apiFetch<Society>(`/admin/societies/${id}`, {
+    method: "PATCH",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteSociety(accessToken: string, id: number) {
+  return apiFetch<void>(`/admin/societies/${id}`, { method: "DELETE", accessToken });
 }
 
 // ---- Reviews ----
@@ -664,4 +704,40 @@ export async function uploadImage(accessToken: string, file: File): Promise<Uplo
     throw new Error(await parseErrorMessage(res));
   }
   return res.json() as Promise<UploadedImage>;
+}
+
+// ---- Home hero ----
+
+export type AdminHomeHero = {
+  eyebrow: string | null;
+  heading: string;
+  description: string | null;
+  primaryCtaLabel: string | null;
+  primaryCtaHref: string | null;
+  secondaryCtaLabel: string | null;
+  secondaryCtaHref: string | null;
+  bannerImage: string | null;
+};
+
+export type HomeHeroInput = {
+  eyebrow?: string;
+  heading?: string;
+  description?: string;
+  primaryCtaLabel?: string;
+  primaryCtaHref?: string;
+  secondaryCtaLabel?: string;
+  secondaryCtaHref?: string;
+  bannerImageUrl?: string;
+};
+
+export async function getHomeHero(accessToken: string) {
+  return apiFetch<AdminHomeHero>("/admin/home-hero", { accessToken });
+}
+
+export async function updateHomeHero(accessToken: string, input: HomeHeroInput) {
+  return apiFetch<AdminHomeHero>("/admin/home-hero", {
+    method: "PATCH",
+    accessToken,
+    body: JSON.stringify(input),
+  });
 }

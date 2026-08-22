@@ -4,8 +4,10 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Building2,
   CalendarHeart,
   Gift,
+  Image as ImageIcon,
   LayoutDashboard,
   ListTree,
   LogOut,
@@ -30,6 +32,8 @@ const NAV_ITEMS = [
   { href: "/blog", label: "Blog", icon: Newspaper, permission: "content.read" },
   { href: "/faqs", label: "FAQs", icon: MessageSquareText, permission: "content.read" },
   { href: "/contact-messages", label: "Contact Inbox", icon: Mail, permission: "content.read" },
+  { href: "/settings/home-hero", label: "Home Hero", icon: ImageIcon, permission: "settings.write" },
+  { href: "/settings/societies", label: "Societies", icon: Building2, permission: "settings.write" },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

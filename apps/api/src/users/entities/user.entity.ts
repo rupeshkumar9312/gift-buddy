@@ -37,6 +37,12 @@ export class User {
   @Column({ type: 'varchar', length: 30, nullable: true })
   phone: string | null;
 
+  // Set once a Google account is linked; passwordHash and phone stay null
+  // for accounts that only ever sign in with Google.
+  @Index({ unique: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  googleId: string | null;
+
   @Column({ type: 'varchar', length: 20, default: UserRole.CUSTOMER })
   role: UserRole;
 

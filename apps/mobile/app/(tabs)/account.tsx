@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { User } from "lucide-react-native";
+import { GoogleSigninButton } from "@react-native-google-signin/google-signin";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useAuth } from "@/context/AuthContext";
 import { colors } from "@/lib/theme";
@@ -21,156 +22,17 @@ const tabStyles = StyleSheet.create({
   labelInactive: { color: colors.muted },
 });
 
-// Shared by the "Sign In with phone" toggle and the Sign Up tab — sign-up
-// is phone-only, so both paths funnel through the same request-code /
-// verify-code flow. Whether name fields are needed is only known after
-// requesting the code (the phone might already belong to an account).
-function PhoneOtpFlow({ onSuccess }: { onSuccess: () => void }) {
-  const { requestOtp, verifyOtp } = useAuth();
-  const [step, setStep] = useState<"phone" | "code">("phone");
-  const [phone, setPhone] = useState("");
-  const [code, setCode] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [isNewUser, setIsNewUser] = useState(false);
-  const [devOtp, setDevOtp] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleRequestCode = async () => {
-    setError(null);
-    setSubmitting(true);
-    try {
-      const result = await requestOtp(phone.trim());
-      setIsNewUser(result.isNewUser);
-      // Non-production only — the API skips Twilio and hands the code back
-      // directly so the flow can be tested without a live SMS account.
-      setDevOtp(result.devOtp ?? null);
-      setCode(result.devOtp ?? "");
-      setStep("code");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't send a code. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleVerifyCode = async () => {
-    setError(null);
-    setSubmitting(true);
-    try {
-      await verifyOtp(
-        phone.trim(),
-        code.trim(),
-        isNewUser ? { firstName: firstName.trim(), lastName: lastName.trim() } : undefined
-      );
-      onSuccess();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't verify that code. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (step === "phone") {
-    return (
-      <View className="flex flex-col gap-4">
-        <View>
-          <Text className="mb-1.5 text-sm text-muted">Mobile number</Text>
-          <TextInput
-            placeholder="10-digit mobile number"
-            placeholderTextColor={colors.muted}
-            keyboardType="phone-pad"
-            value={phone}
-            onChangeText={setPhone}
-            className={inputClassName}
-          />
-        </View>
-        {error && (
-          <Text className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm text-primary">
-            {error}
-          </Text>
-        )}
-        <Pressable
-          onPress={handleRequestCode}
-          disabled={submitting || !phone.trim()}
-          className="mt-2 items-center rounded-full bg-primary py-3.5 disabled:opacity-60"
-        >
-          <Text className="font-sans-medium text-sm uppercase tracking-wide text-white">
-            {submitting ? "Sending code…" : "Send Code"}
-          </Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  return (
-    <View className="flex flex-col gap-4">
-      <Text className="text-sm text-muted">
-        We sent a 6-digit code to <Text className="text-ink">{phone}</Text>.{" "}
-        <Text
-          className="text-primary"
-          onPress={() => {
-            setStep("phone");
-            setError(null);
-          }}
-        >
-          Change number
-        </Text>
-      </Text>
-      {devOtp && (
-        <Text className="rounded-xl border border-dashed border-line bg-cream px-4 py-2.5 text-sm text-muted">
-          Dev mode — no SMS was sent. Your code is <Text className="text-ink">{devOtp}</Text>.
-        </Text>
-      )}
-      {isNewUser && (
-        <View className="flex-row gap-4">
-          <View className="flex-1">
-            <Text className="mb-1.5 text-sm text-muted">First name</Text>
-            <TextInput value={firstName} onChangeText={setFirstName} className={inputClassName} />
-          </View>
-          <View className="flex-1">
-            <Text className="mb-1.5 text-sm text-muted">Last name</Text>
-            <TextInput value={lastName} onChangeText={setLastName} className={inputClassName} />
-          </View>
-        </View>
-      )}
-      <View>
-        <Text className="mb-1.5 text-sm text-muted">6-digit code</Text>
-        <TextInput
-          keyboardType="number-pad"
-          maxLength={6}
-          value={code}
-          onChangeText={setCode}
-          className={inputClassName}
-        />
-      </View>
-      {error && (
-        <Text className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm text-primary">
-          {error}
-        </Text>
-      )}
-      <Pressable
-        onPress={handleVerifyCode}
-        disabled={submitting || !code.trim() || (isNewUser && (!firstName.trim() || !lastName.trim()))}
-        className="mt-2 items-center rounded-full bg-primary py-3.5 disabled:opacity-60"
-      >
-        <Text className="font-sans-medium text-sm uppercase tracking-wide text-white">
-          {submitting ? "Verifying…" : isNewUser ? "Verify & Create Account" : "Verify & Sign In"}
-        </Text>
-      </Pressable>
-    </View>
-  );
-}
-
 export default function AccountScreen() {
-  const { user, isLoading, login, logout } = useAuth();
+  const { user, isLoading, login, register, isGoogleSignInReady, promptGoogleSignIn, logout } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<"signin" | "register">("signin");
-  const [signInMethod, setSignInMethod] = useState<"password" | "phone">("password");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSignIn = async () => {
@@ -182,6 +44,39 @@ export default function AccountScreen() {
       setError(err instanceof Error ? err.message : "Couldn't sign in. Please try again.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRegister = async () => {
+    setError(null);
+    if (password !== confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await register({
+        email: email.trim(),
+        password,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't create your account. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    setGoogleSubmitting(true);
+    try {
+      await promptGoogleSignIn();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't sign in with Google.");
+    } finally {
+      setGoogleSubmitting(false);
     }
   };
 
@@ -265,9 +160,18 @@ export default function AccountScreen() {
           </Text>
         )}
 
-        {tab === "signin" ? (
-          signInMethod === "password" ? (
-            <View className="flex flex-col gap-4">
+        <View className="flex flex-col gap-4">
+          <GoogleSigninButton
+            style={{ width: "100%", height: 48, alignSelf: "center" }}
+            size={GoogleSigninButton.Size.Wide}
+            color={GoogleSigninButton.Color.Light}
+            onPress={handleGoogleSignIn}
+            disabled={!isGoogleSignInReady || googleSubmitting}
+          />
+          <Text className="text-center text-xs uppercase tracking-wide text-muted">or</Text>
+
+          {tab === "signin" ? (
+            <>
               <View>
                 <Text className="mb-1.5 text-sm text-muted">Email</Text>
                 <TextInput
@@ -287,9 +191,6 @@ export default function AccountScreen() {
                   className={inputClassName}
                 />
               </View>
-              <Pressable onPress={() => setSignInMethod("phone")} className="self-end">
-                <Text className="text-sm text-primary">Sign in with phone instead</Text>
-              </Pressable>
               <Pressable
                 onPress={handleSignIn}
                 disabled={submitting || !email.trim() || !password}
@@ -299,24 +200,70 @@ export default function AccountScreen() {
                   {submitting ? "Signing in…" : "Login"}
                 </Text>
               </Pressable>
-            </View>
+            </>
           ) : (
-            <View className="flex flex-col gap-4">
-              <PhoneOtpFlow key="signin" onSuccess={() => undefined} />
-              <Pressable onPress={() => setSignInMethod("password")}>
-                <Text className="text-center text-sm text-primary">Use email &amp; password instead</Text>
+            <>
+              <View className="flex-row gap-4">
+                <View className="flex-1">
+                  <Text className="mb-1.5 text-sm text-muted">First name</Text>
+                  <TextInput value={firstName} onChangeText={setFirstName} className={inputClassName} />
+                </View>
+                <View className="flex-1">
+                  <Text className="mb-1.5 text-sm text-muted">Last name</Text>
+                  <TextInput value={lastName} onChangeText={setLastName} className={inputClassName} />
+                </View>
+              </View>
+              <View>
+                <Text className="mb-1.5 text-sm text-muted">Email</Text>
+                <TextInput
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  value={email}
+                  onChangeText={setEmail}
+                  className={inputClassName}
+                />
+              </View>
+              <View>
+                <Text className="mb-1.5 text-sm text-muted">Password</Text>
+                <TextInput
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                  className={inputClassName}
+                />
+              </View>
+              <View>
+                <Text className="mb-1.5 text-sm text-muted">Confirm password</Text>
+                <TextInput
+                  secureTextEntry
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  className={inputClassName}
+                />
+              </View>
+              <Pressable
+                onPress={handleRegister}
+                disabled={
+                  submitting ||
+                  !firstName.trim() ||
+                  !lastName.trim() ||
+                  !email.trim() ||
+                  password.length < 8 ||
+                  !confirmPassword
+                }
+                className="mt-2 items-center rounded-full bg-primary py-3.5 disabled:opacity-60"
+              >
+                <Text className="font-sans-medium text-sm uppercase tracking-wide text-white">
+                  {submitting ? "Creating account…" : "Create Account"}
+                </Text>
               </Pressable>
-            </View>
-          )
-        ) : (
-          <View className="flex flex-col gap-4">
-            <PhoneOtpFlow key="register" onSuccess={() => undefined} />
-            <Text className="text-xs leading-relaxed text-muted">
-              Your personal data will be used to support your experience throughout this app, and
-              for other purposes described in our privacy policy.
-            </Text>
-          </View>
-        )}
+              <Text className="text-xs leading-relaxed text-muted">
+                Your personal data will be used to support your experience throughout this app, and
+                for other purposes described in our privacy policy.
+              </Text>
+            </>
+          )}
+        </View>
 
         <Pressable onPress={() => router.push("/track-order")} className="mt-8 items-center">
           <View className="flex-row items-center gap-2">

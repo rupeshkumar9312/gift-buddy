@@ -33,7 +33,7 @@ export function Header() {
             <span>hello@giftbuddy.com</span>
             <span className="mx-2 h-3 w-px bg-line" />
             <Phone size={13} />
-            <span>012 - 345 - 6789</span>
+            <span>7599031402</span>
           </div>
           <div className="flex items-center gap-5">
             <span>Free standard shipping on all orders over {formatMoney(99)}</span>

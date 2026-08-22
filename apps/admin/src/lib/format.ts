@@ -1,7 +1,17 @@
+// Deliberately not `style: "currency"` — see apps/web/src/lib/format.ts for
+// why (ICU/CLDR version drift between server and browser causes a
+// hydration mismatch on the ₹-symbol spacing specifically).
 export function formatMoney(amount: number, currency = "inr"): string {
-  return new Intl.NumberFormat("en-IN", { style: "currency", currency: currency.toUpperCase() }).format(
-    amount
-  );
+  if (currency.toLowerCase() !== "inr") {
+    return new Intl.NumberFormat("en-IN", { style: "currency", currency: currency.toUpperCase() }).format(
+      amount
+    );
+  }
+  const formatted = new Intl.NumberFormat("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+  return `₹${formatted}`;
 }
 
 export function formatDate(value: string | Date): string {

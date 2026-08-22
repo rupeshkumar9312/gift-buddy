@@ -18,6 +18,10 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { phone } });
   }
 
+  findByGoogleId(googleId: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { googleId } });
+  }
+
   findByEmailWithSecrets(email: string): Promise<User | null> {
     return this.usersRepository
       .createQueryBuilder('user')
@@ -41,14 +45,20 @@ export class UsersService {
 
   create(data: {
     email?: string;
+    emailVerifiedAt?: Date;
     passwordHash?: string;
     firstName: string;
     lastName: string;
     phone?: string;
     phoneVerifiedAt?: Date;
+    googleId?: string;
   }): Promise<User> {
     const user = this.usersRepository.create(data);
     return this.usersRepository.save(user);
+  }
+
+  async linkGoogleId(userId: number, googleId: string): Promise<void> {
+    await this.usersRepository.update(userId, { googleId });
   }
 
   async setRefreshToken(

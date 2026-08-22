@@ -128,6 +128,12 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   TWILIO_FROM_NUMBER: string = '';
+
+  // Optional: when unset, the Google sign-in endpoint responds with a clear
+  // "not configured" error instead of the app failing to boot.
+  @IsString()
+  @IsOptional()
+  GOOGLE_CLIENT_ID: string = '';
 }
 
 export function validate(config: Record<string, unknown>) {

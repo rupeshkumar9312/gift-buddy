@@ -14,6 +14,7 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { GoogleAuthDto } from './dto/google-auth.dto';
 import { RequestOtpDto } from './dto/request-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { JwtAccessGuard } from './guards/jwt-access.guard';
@@ -64,6 +65,26 @@ export class AuthController {
       dto,
       cookies?.[CART_COOKIE],
     );
+    this.setRefreshCookie(res, refreshToken);
+    if (cookies?.[CART_COOKIE]) {
+      res.clearCookie(CART_COOKIE, { path: CART_COOKIE_PATH });
+    }
+    return { user, accessToken };
+  }
+
+  @Post('google')
+  @HttpCode(HttpStatus.OK)
+  async googleAuth(
+    @Body() dto: GoogleAuthDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const cookies = req.cookies as Record<string, string | undefined>;
+    const { user, accessToken, refreshToken } =
+      await this.authService.authenticateWithGoogle(
+        dto.idToken,
+        cookies?.[CART_COOKIE],
+      );
     this.setRefreshCookie(res, refreshToken);
     if (cookies?.[CART_COOKIE]) {
       res.clearCookie(CART_COOKIE, { path: CART_COOKIE_PATH });

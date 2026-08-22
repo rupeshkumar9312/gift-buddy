@@ -18,6 +18,7 @@ import { LoginDto } from './dto/login.dto';
 import { toPublicUser } from './auth.mapper';
 import { OtpChallenge } from './entities/otp-challenge.entity';
 import { SmsService } from './sms.service';
+import { GoogleAuthService } from './google-auth.service';
 
 type TokenPayload = { sub: number; email: string | null };
 
@@ -33,6 +34,7 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly cartService: CartService,
     private readonly smsService: SmsService,
+    private readonly googleAuthService: GoogleAuthService,
     @InjectRepository(OtpChallenge)
     private readonly otpChallengeRepository: Repository<OtpChallenge>,
   ) {}
@@ -70,6 +72,35 @@ export class AuthService {
     );
     if (!passwordMatches) {
       throw new UnauthorizedException('Incorrect email or password');
+    }
+
+    if (guestCartToken) {
+      await this.cartService.mergeGuestCartIntoUser(user.id, guestCartToken);
+    }
+
+    return this.issueSession(user);
+  }
+
+  async authenticateWithGoogle(idToken: string, guestCartToken?: string) {
+    const profile = await this.googleAuthService.verifyIdToken(idToken);
+
+    let user = await this.usersService.findByGoogleId(profile.googleId);
+    if (!user) {
+      // The same email might already have a password (or phone) account —
+      // link Google onto it instead of creating a duplicate.
+      const existing = await this.usersService.findByEmail(profile.email);
+      if (existing) {
+        await this.usersService.linkGoogleId(existing.id, profile.googleId);
+        user = existing;
+      } else {
+        user = await this.usersService.create({
+          email: profile.email,
+          emailVerifiedAt: new Date(),
+          googleId: profile.googleId,
+          firstName: profile.firstName || 'Google',
+          lastName: profile.lastName || 'User',
+        });
+      }
     }
 
     if (guestCartToken) {

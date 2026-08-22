@@ -10,6 +10,7 @@ import { AuthService } from './auth.service';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 import { OtpChallenge } from './entities/otp-challenge.entity';
 import { SmsService } from './sms.service';
+import { GoogleAuthService } from './google-auth.service';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { SmsService } from './sms.service';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 20 }]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtAccessStrategy, SmsService],
+  providers: [AuthService, JwtAccessStrategy, SmsService, GoogleAuthService],
   exports: [AuthService],
 })
 export class AuthModule {}

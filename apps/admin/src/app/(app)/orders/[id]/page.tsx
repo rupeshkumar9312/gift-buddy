@@ -191,6 +191,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               <br />
               {order.shippingAddress.country}
             </p>
+            {order.shippingAddress.phone && (
+              <p className="mt-3 border-t border-line pt-3 text-muted">
+                Phone: <span className="text-ink">{order.shippingAddress.phone}</span>
+              </p>
+            )}
           </section>
 
           <section className="rounded-2xl border border-line bg-white p-6 text-sm">

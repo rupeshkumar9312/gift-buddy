@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
@@ -45,6 +47,7 @@ export class AdminCategoriesController {
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @RequirePermissions('products.write')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.adminCategoriesService.remove(id);

@@ -24,12 +24,7 @@ type AuthContextValue = {
     firstName: string;
     lastName: string;
   }) => Promise<void>;
-  requestOtp: (phone: string) => Promise<{ isNewUser: boolean; devOtp?: string }>;
-  verifyOtp: (
-    phone: string,
-    code: string,
-    name?: { firstName: string; lastName: string }
-  ) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -90,23 +85,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(data.accessToken);
   };
 
-  const requestOtp = async (phone: string) => {
-    const res = await fetch(`${API_URL}/auth/otp/request`, {
+  const loginWithGoogle = async (idToken: string) => {
+    const res = await fetch(`${API_URL}/auth/google`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone }),
-    });
-    if (!res.ok) throw new Error(await parseErrorMessage(res));
-    return (await res.json()) as { isNewUser: boolean; devOtp?: string };
-  };
-
-  const verifyOtp: AuthContextValue["verifyOtp"] = async (phone, code, name) => {
-    const res = await fetch(`${API_URL}/auth/otp/verify`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, code, ...name }),
+      body: JSON.stringify({ idToken }),
     });
     if (!res.ok) throw new Error(await parseErrorMessage(res));
     const data = (await res.json()) as { user: AuthUser; accessToken: string };
@@ -128,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, accessToken, isLoading, login, register, requestOtp, verifyOtp, logout }}
+      value={{ user, accessToken, isLoading, login, register, loginWithGoogle, logout }}
     >
       {children}
     </AuthContext.Provider>

@@ -66,7 +66,10 @@ export default function OrdersPage() {
                     {order.orderNumber}
                   </Link>
                 </td>
-                <td className="px-5 py-3 text-muted">{order.email}</td>
+                <td className="px-5 py-3 text-muted">
+                  {order.email}
+                  {order.phone && <div className="text-xs text-muted/70">{order.phone}</div>}
+                </td>
                 <td className="px-5 py-3 text-muted">{formatDate(order.createdAt)}</td>
                 <td className="px-5 py-3 text-muted">{order.itemCount}</td>
                 <td className="px-5 py-3">

@@ -8,6 +8,10 @@ export type AdminOrderSummary = {
   id: number;
   orderNumber: string;
   email: string;
+  // From the checkout shipping address, not the customer's account — the
+  // only place a phone number is reliably captured regardless of how they
+  // signed in (Google accounts, for instance, never have User.phone set).
+  phone: string | null;
   status: string;
   total: number;
   currency: string;
@@ -33,6 +37,7 @@ export function toAdminOrderSummary(
     id: order.id,
     orderNumber: order.orderNumber,
     email: order.email,
+    phone: order.shippingAddress?.phone ?? null,
     status: order.status,
     total: Number(order.total),
     currency: order.currency,

@@ -28,7 +28,11 @@ export default function ContactPage() {
       setSent(true);
       e.currentTarget.reset();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't send your message. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Couldn't send your message. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -36,22 +40,46 @@ export default function ContactPage() {
 
   return (
     <>
-      <PageBanner title="Contact Us" crumbs={[{ label: "Home", href: "/" }, { label: "Contact" }]} />
+      <PageBanner
+        title="Contact Us"
+        crumbs={[{ label: "Home", href: "/" }, { label: "Contact" }]}
+      />
 
       <div className="container-page py-14">
         <div className="grid grid-cols-1 gap-14 lg:grid-cols-[1fr_380px]">
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <h2 className="text-2xl font-medium">Get In Touch</h2>
             <p className="max-w-md text-sm text-muted">
-              We promise we&rsquo;ll get back to you promptly &ndash; your gifting needs are
-              always on our minds!
+              We promise we&rsquo;ll get back to you promptly &ndash; your
+              gifting needs are always on our minds!
             </p>
             <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <input required name="name" placeholder="Your name" className={inputClass} />
-              <input required name="email" type="email" placeholder="Your email" className={inputClass} />
+              <input
+                required
+                name="name"
+                placeholder="Your name"
+                className={inputClass}
+              />
+              <input
+                required
+                name="email"
+                type="email"
+                placeholder="Your email"
+                className={inputClass}
+              />
             </div>
-            <input name="subject" placeholder="Subject" className={inputClass} />
-            <textarea required name="message" placeholder="Your message" rows={6} className={inputClass} />
+            <input
+              name="subject"
+              placeholder="Subject"
+              className={inputClass}
+            />
+            <textarea
+              required
+              name="message"
+              placeholder="Your message"
+              rows={6}
+              className={inputClass}
+            />
             {error && <p className="text-sm text-red-500">{error}</p>}
             {sent && (
               <p className="text-sm text-primary">
@@ -77,21 +105,21 @@ export default function ContactPage() {
               <MapPin size={18} className="mt-0.5 shrink-0 text-primary" />
               <div>
                 <p className="text-sm font-medium text-ink">Our Store</p>
-                <p className="text-sm text-muted">46 Kingston Ave, Queensbury</p>
+                <p className="text-sm text-muted">Sector 168, Noida</p>
               </div>
             </div>
             <div className="flex items-start gap-3 rounded-2xl bg-cream p-5">
               <Phone size={18} className="mt-0.5 shrink-0 text-primary" />
               <div>
                 <p className="text-sm font-medium text-ink">Phone</p>
-                <p className="text-sm text-muted">012 - 345 - 6789</p>
+                <p className="text-sm text-muted">7599031402</p>
               </div>
             </div>
             <div className="flex items-start gap-3 rounded-2xl bg-cream p-5">
               <Mail size={18} className="mt-0.5 shrink-0 text-primary" />
               <div>
                 <p className="text-sm font-medium text-ink">Email</p>
-                <p className="text-sm text-muted">hello@giftbuddy.com</p>
+                <p className="text-sm text-muted">giftbuddy0210@gmail.com</p>
               </div>
             </div>
           </aside>

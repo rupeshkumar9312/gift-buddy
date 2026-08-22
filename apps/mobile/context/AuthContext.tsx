@@ -1,5 +1,22 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  isSuccessResponse,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
 import { API_URL } from "@/lib/api";
+
+// Native Google Sign In requires a custom development build (Play Services
+// isn't available in Expo Go) — see the note in apps/mobile/AGENTS.md/README
+// or ask before assuming this works there. The token this returns is always
+// audienced to `webClientId`, regardless of which platform-specific OAuth
+// client Play Services used to authenticate the device — so the backend's
+// GOOGLE_CLIENT_ID (unchanged) still verifies it correctly.
+const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+if (GOOGLE_CLIENT_ID) {
+  GoogleSignin.configure({ webClientId: GOOGLE_CLIENT_ID });
+}
 
 export type AuthUser = {
   id: number;
@@ -21,12 +38,8 @@ type AuthContextValue = {
     firstName: string;
     lastName: string;
   }) => Promise<void>;
-  requestOtp: (phone: string) => Promise<{ isNewUser: boolean; devOtp?: string }>;
-  verifyOtp: (
-    phone: string,
-    code: string,
-    name?: { firstName: string; lastName: string }
-  ) => Promise<void>;
+  isGoogleSignInReady: boolean;
+  promptGoogleSignIn: () => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -90,28 +103,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(data.accessToken);
   };
 
-  const requestOtp = async (phone: string) => {
-    const res = await fetch(`${API_URL}/auth/otp/request`, {
+  const loginWithGoogle = async (idToken: string) => {
+    const res = await fetch(`${API_URL}/auth/google`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone }),
-    });
-    if (!res.ok) throw new Error(await parseErrorMessage(res));
-    return (await res.json()) as { isNewUser: boolean; devOtp?: string };
-  };
-
-  const verifyOtp: AuthContextValue["verifyOtp"] = async (phone, code, name) => {
-    const res = await fetch(`${API_URL}/auth/otp/verify`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, code, ...name }),
+      body: JSON.stringify({ idToken }),
     });
     if (!res.ok) throw new Error(await parseErrorMessage(res));
     const data = (await res.json()) as { user: AuthUser; accessToken: string };
     setUser(data.user);
     setAccessToken(data.accessToken);
+  };
+
+  const promptGoogleSignIn = async () => {
+    if (!GOOGLE_CLIENT_ID) {
+      throw new Error("Google sign-in is not configured for this app.");
+    }
+    try {
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      if (!isSuccessResponse(response)) {
+        // User backed out of the account picker — not an error, just a no-op.
+        return;
+      }
+      const idToken = response.data.idToken;
+      if (!idToken) {
+        throw new Error("Google didn't return a sign-in token. Please try again.");
+      }
+      await loginWithGoogle(idToken);
+    } catch (err) {
+      if (isErrorWithCode(err) && err.code === statusCodes.SIGN_IN_CANCELLED) {
+        return;
+      }
+      throw err instanceof Error ? err : new Error("Google sign-in failed. Please try again.");
+    }
   };
 
   const logout = async () => {
@@ -128,7 +154,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, accessToken, isLoading, login, register, requestOtp, verifyOtp, logout }}
+      value={{
+        user,
+        accessToken,
+        isLoading,
+        login,
+        register,
+        isGoogleSignInReady: Boolean(GOOGLE_CLIENT_ID),
+        promptGoogleSignIn,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

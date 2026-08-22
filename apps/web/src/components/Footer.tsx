@@ -17,12 +17,12 @@ export function Footer() {
           </p>
           <div className="mt-4 flex items-start gap-2 text-sm text-muted">
             <MapPin size={16} className="mt-0.5 shrink-0" />
-            <span>46 Kingston Ave, Queensbury</span>
+            <span>Sector 168, Noida</span>
           </div>
-          <div className="mt-2 flex items-start gap-2 text-sm text-muted">
+          {/* <div className="mt-2 flex items-start gap-2 text-sm text-muted">
             <Phone size={16} className="mt-0.5 shrink-0" />
             <span>Monday &ndash; Friday 8am &ndash; 6pm</span>
-          </div>
+          </div> */}
           <div className="mt-5 flex items-center gap-3">
             {[FacebookIcon, InstagramIcon, TwitterIcon, PinterestIcon].map((Icon, i) => (
               <a
@@ -73,12 +73,12 @@ export function Footer() {
       <div className="border-t border-line">
         <div className="container-page flex flex-col items-center justify-between gap-3 py-6 text-xs text-muted sm:flex-row">
           <span>© {new Date().getFullYear()} GiftBuddy. All rights reserved.</span>
-          <div className="flex items-center gap-4">
+          {/* <div className="flex items-center gap-4">
             <span className="opacity-70">Visa</span>
             <span className="opacity-70">Mastercard</span>
             <span className="opacity-70">PayPal</span>
             <span className="opacity-70">Apple Pay</span>
-          </div>
+          </div> */}
         </div>
       </div>
     </footer>

@@ -70,4 +70,7 @@ export default () => ({
     authToken: process.env.TWILIO_AUTH_TOKEN ?? '',
     fromNumber: process.env.TWILIO_FROM_NUMBER ?? '',
   },
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID ?? '',
+  },
 });

@@ -218,6 +218,17 @@ export async function getCheckoutConfig(): Promise<{ gatewayEnabled: boolean }> 
   return apiFetch<{ gatewayEnabled: boolean }>("/checkout/config");
 }
 
+// ---- Societies ----
+
+export type Society = {
+  id: number;
+  name: string;
+};
+
+export async function getSocieties(): Promise<Society[]> {
+  return apiFetch<Society[]>("/societies");
+}
+
 // ---- Checkout ----
 
 export type AddressInput = {
@@ -494,6 +505,23 @@ export async function getOccasion(slug: string): Promise<OccasionDetail | null> 
   } catch {
     return null;
   }
+}
+
+// ---- Home hero ----
+
+export type HomeHero = {
+  eyebrow: string | null;
+  heading: string;
+  description: string | null;
+  primaryCtaLabel: string | null;
+  primaryCtaHref: string | null;
+  secondaryCtaLabel: string | null;
+  secondaryCtaHref: string | null;
+  bannerImage: string | null;
+};
+
+export async function getHomeHero(): Promise<HomeHero> {
+  return apiFetch<HomeHero>("/home-hero");
 }
 
 // ---- FAQs ----
