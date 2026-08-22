@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getOccasion } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
+import { AuthGate } from "@/components/AuthGate";
 import { ShopPageClient } from "../../shop/ShopPageClient";
 
 export async function generateMetadata({
@@ -41,32 +42,37 @@ export default async function OccasionPage({ params }: { params: Promise<{ slug:
         crumbs={[{ label: "Home", href: "/" }, { label: occasion.name }]}
       />
 
-      {(occasion.bannerImage || occasion.tagline || occasion.description) && (
-        <div className="container-page py-10">
-          <div className="mx-auto max-w-3xl text-center">
-            {occasion.bannerImage && (
-              <div className="relative mb-6 aspect-16/6 w-full overflow-hidden rounded-2xl bg-cream">
-                <Image
-                  src={occasion.bannerImage}
-                  alt={occasion.name}
-                  fill
-                  sizes="800px"
-                  className="object-cover"
-                  priority
-                />
-              </div>
-            )}
-            {occasion.tagline && (
-              <p className="font-script text-2xl text-primary">{occasion.tagline}</p>
-            )}
-            {occasion.description && (
-              <p className="mt-3 text-[15px] leading-relaxed text-muted">{occasion.description}</p>
-            )}
+      <AuthGate
+        title="Sign in to explore this occasion"
+        message="Continue with Google to see the full gift collection for this occasion."
+      >
+        {(occasion.bannerImage || occasion.tagline || occasion.description) && (
+          <div className="container-page py-10">
+            <div className="mx-auto max-w-3xl text-center">
+              {occasion.bannerImage && (
+                <div className="relative mb-6 aspect-16/6 w-full overflow-hidden rounded-2xl bg-cream">
+                  <Image
+                    src={occasion.bannerImage}
+                    alt={occasion.name}
+                    fill
+                    sizes="800px"
+                    className="object-cover"
+                    priority
+                  />
+                </div>
+              )}
+              {occasion.tagline && (
+                <p className="font-script text-2xl text-primary">{occasion.tagline}</p>
+              )}
+              {occasion.description && (
+                <p className="mt-3 text-[15px] leading-relaxed text-muted">{occasion.description}</p>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <ShopPageClient categories={categories} products={occasion.products} />
+        <ShopPageClient categories={categories} products={occasion.products} />
+      </AuthGate>
     </>
   );
 }

@@ -23,6 +23,7 @@ declare global {
             parent: HTMLElement,
             options: { theme?: string; size?: string; width?: number; text?: string }
           ) => void;
+          prompt: () => void;
         };
       };
     };
@@ -33,7 +34,19 @@ declare global {
 // lookalike) — it authenticates entirely through Google's own popup/iframe,
 // keyed to the "Authorized JavaScript origins" configured on the OAuth
 // client, so unlike the mobile app this needs no redirect URI at all.
-export function GoogleSignInButton({ onCredential }: { onCredential: (idToken: string) => void }) {
+//
+// `autoPrompt` also fires the One Tap floating dialog as soon as the script
+// is ready, so signing in doesn't require finding and clicking a button
+// first — the rendered button underneath stays as a fallback for when One
+// Tap is suppressed (e.g. the user dismissed it recently, or isn't signed
+// into a Google account in this browser).
+export function GoogleSignInButton({
+  onCredential,
+  autoPrompt = true,
+}: {
+  onCredential: (idToken: string) => void;
+  autoPrompt?: boolean;
+}) {
   const buttonRef = useRef<HTMLDivElement>(null);
   const onCredentialRef = useRef(onCredential);
   const [scriptLoaded, setScriptLoaded] = useState(false);
@@ -54,7 +67,10 @@ export function GoogleSignInButton({ onCredential }: { onCredential: (idToken: s
       width: buttonRef.current.offsetWidth,
       text: "continue_with",
     });
-  }, [scriptLoaded]);
+    if (autoPrompt) {
+      window.google.accounts.id.prompt();
+    }
+  }, [scriptLoaded, autoPrompt]);
 
   if (!GOOGLE_CLIENT_ID) return null;
 
