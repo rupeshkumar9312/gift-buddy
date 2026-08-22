@@ -19,6 +19,7 @@ export default function CartPage() {
     couponCode,
     applyCoupon,
     removeCoupon,
+    isLoading,
   } = useCart();
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState<string | null>(null);
@@ -66,7 +67,11 @@ export default function CartPage() {
       <PageBanner title="Your Cart" crumbs={[{ label: "Home", href: "/" }, { label: "Cart" }]} />
 
       <div className="container-page py-14">
-        {lines.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <Spinner size={28} className="text-primary" />
+          </div>
+        ) : lines.length === 0 ? (
           <div className="flex flex-col items-center gap-5 py-16 text-center">
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-cream text-primary">
               <ShoppingBag size={26} />

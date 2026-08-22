@@ -56,6 +56,7 @@ type CartContextValue = {
   wishlist: Product[];
   isCartOpen: boolean;
   isLoading: boolean;
+  isWishlistLoading: boolean;
   openCart: () => void;
   closeCart: () => void;
   addToCart: (product: Product, quantity?: number) => Promise<void>;
@@ -81,6 +82,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [wishlist, setWishlist] = useState<Product[]>([]);
   const [isCartOpen, setCartOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isWishlistLoading, setIsWishlistLoading] = useState(true);
 
   // Cart is server-backed: a guest cart lives behind an httpOnly cookie, and
   // logging in merges it into the user's cart — so re-fetch whenever the
@@ -110,7 +112,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       .then((items) => {
         if (!cancelled) setWishlist(items.map(wishlistItemToProduct));
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setIsWishlistLoading(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -175,6 +180,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         wishlist,
         isCartOpen,
         isLoading,
+        isWishlistLoading,
         openCart: () => setCartOpen(true),
         closeCart: () => setCartOpen(false),
         addToCart,

@@ -4,11 +4,12 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import { PageBanner } from "@/components/PageBanner";
 import { ProductCard } from "@/components/ProductCard";
+import { Spinner } from "@/components/Spinner";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 
 export default function WishlistPage() {
-  const { wishlist } = useCart();
+  const { wishlist, isWishlistLoading } = useCart();
   const { user } = useAuth();
 
   return (
@@ -24,7 +25,11 @@ export default function WishlistPage() {
             to save your wishlist across visits.
           </p>
         )}
-        {wishlist.length === 0 ? (
+        {isWishlistLoading ? (
+          <div className="flex justify-center py-16">
+            <Spinner size={28} className="text-primary" />
+          </div>
+        ) : wishlist.length === 0 ? (
           <div className="flex flex-col items-center gap-5 py-16 text-center">
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-cream text-primary">
               <Heart size={26} />

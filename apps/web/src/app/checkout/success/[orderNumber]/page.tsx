@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { PageBanner } from "@/components/PageBanner";
+import { Spinner } from "@/components/Spinner";
 import { useAuth } from "@/context/AuthContext";
 import { getOrder, type OrderDetail } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
@@ -16,12 +17,14 @@ export default function CheckoutSuccessPage({
   const { orderNumber } = use(params);
   const { user, accessToken } = useAuth();
   const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [orderFetchFailed, setOrderFetchFailed] = useState(false);
+  const loadingOrder = Boolean(accessToken) && !order && !orderFetchFailed;
 
   useEffect(() => {
     if (!accessToken) return;
     getOrder(accessToken, orderNumber)
       .then(setOrder)
-      .catch(() => undefined);
+      .catch(() => setOrderFetchFailed(true));
   }, [accessToken, orderNumber]);
 
   return (
@@ -38,6 +41,12 @@ export default function CheckoutSuccessPage({
             Order <span className="font-medium text-ink">{orderNumber}</span> is confirmed. A
             receipt has been emailed to you.
           </p>
+
+          {loadingOrder && (
+            <div className="mt-8 flex justify-center">
+              <Spinner size={24} className="text-primary" />
+            </div>
+          )}
 
           {order && (
             <div className="mt-8 rounded-2xl border border-line bg-white p-6 text-left text-sm">
