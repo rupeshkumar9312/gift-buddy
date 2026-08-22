@@ -19,8 +19,18 @@ import { toPublicUser } from './auth.mapper';
 import { OtpChallenge } from './entities/otp-challenge.entity';
 import { SmsService } from './sms.service';
 import { GoogleAuthService } from './google-auth.service';
+import { LoginActivityService } from '../login-activity/login-activity.service';
+import { LoginActorType } from '../login-activity/entities/login-activity.entity';
 
 type TokenPayload = { sub: number; email: string | null };
+
+// The request-context bits a login/register/sign-in call needs to audit
+// itself, threaded down from the controller (which is the only layer with
+// access to the raw Express request).
+export type LoginRequestContext = {
+  ipAddress: string;
+  userAgent: string | null;
+};
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
@@ -35,11 +45,16 @@ export class AuthService {
     private readonly cartService: CartService,
     private readonly smsService: SmsService,
     private readonly googleAuthService: GoogleAuthService,
+    private readonly loginActivityService: LoginActivityService,
     @InjectRepository(OtpChallenge)
     private readonly otpChallengeRepository: Repository<OtpChallenge>,
   ) {}
 
-  async register(dto: RegisterDto, guestCartToken?: string) {
+  async register(
+    dto: RegisterDto,
+    guestCartToken?: string,
+    ctx?: LoginRequestContext,
+  ) {
     const existing = await this.usersService.findByEmail(dto.email);
     if (existing) {
       throw new ConflictException('An account with this email already exists');
@@ -57,10 +72,14 @@ export class AuthService {
       await this.cartService.mergeGuestCartIntoUser(user.id, guestCartToken);
     }
 
-    return this.issueSession(user);
+    return this.issueSession(user, 'password', ctx);
   }
 
-  async login(dto: LoginDto, guestCartToken?: string) {
+  async login(
+    dto: LoginDto,
+    guestCartToken?: string,
+    ctx?: LoginRequestContext,
+  ) {
     const user = await this.usersService.findByEmailWithSecrets(dto.email);
     if (!user || !user.passwordHash) {
       throw new UnauthorizedException('Incorrect email or password');
@@ -78,10 +97,14 @@ export class AuthService {
       await this.cartService.mergeGuestCartIntoUser(user.id, guestCartToken);
     }
 
-    return this.issueSession(user);
+    return this.issueSession(user, 'password', ctx);
   }
 
-  async authenticateWithGoogle(idToken: string, guestCartToken?: string) {
+  async authenticateWithGoogle(
+    idToken: string,
+    guestCartToken?: string,
+    ctx?: LoginRequestContext,
+  ) {
     const profile = await this.googleAuthService.verifyIdToken(idToken);
 
     let user = await this.usersService.findByGoogleId(profile.googleId);
@@ -107,7 +130,7 @@ export class AuthService {
       await this.cartService.mergeGuestCartIntoUser(user.id, guestCartToken);
     }
 
-    return this.issueSession(user);
+    return this.issueSession(user, 'google', ctx);
   }
 
   async requestOtp(
@@ -168,6 +191,7 @@ export class AuthService {
     firstName: string | undefined,
     lastName: string | undefined,
     guestCartToken?: string,
+    ctx?: LoginRequestContext,
   ) {
     const phone = this.normalizePhone(rawPhone);
 
@@ -217,7 +241,7 @@ export class AuthService {
       await this.cartService.mergeGuestCartIntoUser(user.id, guestCartToken);
     }
 
-    return this.issueSession(user);
+    return this.issueSession(user, 'otp', ctx);
   }
 
   /** Bare 10-digit numbers default to India (+91), matching this app's
@@ -275,7 +299,11 @@ export class AuthService {
     await this.usersService.setRefreshToken(userId, null, null);
   }
 
-  private async issueSession(user: User) {
+  private async issueSession(
+    user: User,
+    method?: string,
+    ctx?: LoginRequestContext,
+  ) {
     const payload: TokenPayload = { sub: user.id, email: user.email };
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -297,6 +325,26 @@ export class AuthService {
       new Date(Date.now() + refreshTtlMs),
     );
 
-    return { user: toPublicUser(user), accessToken, refreshToken };
+    // Only a genuine login/register/sign-in passes method+ctx — the silent
+    // background token refresh (`refresh()` above) calls this with neither,
+    // so it never creates a spurious "login" entry on every page load.
+    let loginActivityId: number | undefined;
+    if (method && ctx) {
+      const activity = await this.loginActivityService.record({
+        actorType: LoginActorType.CUSTOMER,
+        userId: user.id,
+        method,
+        ipAddress: ctx.ipAddress,
+        userAgent: ctx.userAgent,
+      });
+      loginActivityId = activity.id;
+    }
+
+    return {
+      user: toPublicUser(user),
+      accessToken,
+      refreshToken,
+      loginActivityId,
+    };
   }
 }

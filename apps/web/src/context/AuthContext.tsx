@@ -41,6 +41,37 @@ async function parseErrorMessage(res: Response): Promise<string> {
   return "Something went wrong. Please try again.";
 }
 
+// Fired in the background right after a successful login/register/Google
+// sign-in — never awaited by the caller, since the browser's geolocation
+// permission prompt is user-interactive and can take anywhere from
+// instant to "never" (left unanswered). The login itself already has an
+// IP-based location recorded server-side; this just upgrades that same
+// audit row to a precise GPS fix if the prompt is granted. A denial or
+// timeout intentionally does nothing further — the IP-based record already
+// stands.
+function captureLoginLocation(accessToken: string, loginActivityId: number | undefined) {
+  if (!loginActivityId) return;
+  if (typeof navigator === "undefined" || !navigator.geolocation) return;
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      fetch(`${API_URL}/auth/login-activity/${loginActivityId}/location`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        }),
+      }).catch(() => undefined);
+    },
+    () => undefined,
+    { maximumAge: 5 * 60 * 1000, timeout: 10_000 },
+  );
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -67,9 +98,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ email, password }),
     });
     if (!res.ok) throw new Error(await parseErrorMessage(res));
-    const data = (await res.json()) as { user: AuthUser; accessToken: string };
+    const data = (await res.json()) as {
+      user: AuthUser;
+      accessToken: string;
+      loginActivityId?: number;
+    };
     setUser(data.user);
     setAccessToken(data.accessToken);
+    captureLoginLocation(data.accessToken, data.loginActivityId);
   };
 
   const register: AuthContextValue["register"] = async (input) => {
@@ -80,9 +116,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify(input),
     });
     if (!res.ok) throw new Error(await parseErrorMessage(res));
-    const data = (await res.json()) as { user: AuthUser; accessToken: string };
+    const data = (await res.json()) as {
+      user: AuthUser;
+      accessToken: string;
+      loginActivityId?: number;
+    };
     setUser(data.user);
     setAccessToken(data.accessToken);
+    captureLoginLocation(data.accessToken, data.loginActivityId);
   };
 
   const loginWithGoogle = async (idToken: string) => {
@@ -93,9 +134,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ idToken }),
     });
     if (!res.ok) throw new Error(await parseErrorMessage(res));
-    const data = (await res.json()) as { user: AuthUser; accessToken: string };
+    const data = (await res.json()) as {
+      user: AuthUser;
+      accessToken: string;
+      loginActivityId?: number;
+    };
     setUser(data.user);
     setAccessToken(data.accessToken);
+    captureLoginLocation(data.accessToken, data.loginActivityId);
   };
 
   const logout = async () => {

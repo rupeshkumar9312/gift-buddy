@@ -45,6 +45,7 @@ import { AdminOutOfAreaOrdersModule } from './admin/out-of-area-orders/admin-out
 import { AdminPromoBannersModule } from './admin/promo-banners/admin-promo-banners.module';
 import { AdminSaleBannersModule } from './admin/sale-banners/admin-sale-banners.module';
 import { AdminGiftKitsModule } from './admin/gift-kits/admin-gift-kits.module';
+import { AdminLoginActivityModule } from './admin/login-activity/admin-login-activity.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -99,6 +100,7 @@ import { AppService } from './app.service';
     AdminPromoBannersModule,
     AdminSaleBannersModule,
     AdminGiftKitsModule,
+    AdminLoginActivityModule,
   ],
   controllers: [AppController],
   providers: [AppService],

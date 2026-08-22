@@ -3,6 +3,9 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseIntPipe,
+  Patch,
   Post,
   Req,
   Res,
@@ -23,6 +26,10 @@ import {
   type CurrentUserPayload,
 } from './decorators/current-user.decorator';
 import { CART_COOKIE } from '../cart/cart.controller';
+import { LoginActivityService } from '../login-activity/login-activity.service';
+import { LoginActorType } from '../login-activity/entities/login-activity.entity';
+import { AttachGpsLocationDto } from '../login-activity/dto/attach-gps-location.dto';
+import { getClientIp } from '../login-activity/ip.util';
 
 const REFRESH_COOKIE = 'refresh_token';
 const REFRESH_COOKIE_PATH = '/api/v1/auth';
@@ -33,6 +40,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly config: ConfigService,
+    private readonly loginActivityService: LoginActivityService,
   ) {}
 
   @Post('register')
@@ -42,15 +50,17 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const cookies = req.cookies as Record<string, string | undefined>;
-    const { user, accessToken, refreshToken } = await this.authService.register(
-      dto,
-      cookies?.[CART_COOKIE],
-    );
+    const { user, accessToken, refreshToken, loginActivityId } =
+      await this.authService.register(
+        dto,
+        cookies?.[CART_COOKIE],
+        this.requestContext(req),
+      );
     this.setRefreshCookie(res, refreshToken);
     if (cookies?.[CART_COOKIE]) {
       res.clearCookie(CART_COOKIE, { path: CART_COOKIE_PATH });
     }
-    return { user, accessToken };
+    return { user, accessToken, loginActivityId };
   }
 
   @Post('login')
@@ -61,15 +71,17 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const cookies = req.cookies as Record<string, string | undefined>;
-    const { user, accessToken, refreshToken } = await this.authService.login(
-      dto,
-      cookies?.[CART_COOKIE],
-    );
+    const { user, accessToken, refreshToken, loginActivityId } =
+      await this.authService.login(
+        dto,
+        cookies?.[CART_COOKIE],
+        this.requestContext(req),
+      );
     this.setRefreshCookie(res, refreshToken);
     if (cookies?.[CART_COOKIE]) {
       res.clearCookie(CART_COOKIE, { path: CART_COOKIE_PATH });
     }
-    return { user, accessToken };
+    return { user, accessToken, loginActivityId };
   }
 
   @Post('google')
@@ -80,16 +92,17 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const cookies = req.cookies as Record<string, string | undefined>;
-    const { user, accessToken, refreshToken } =
+    const { user, accessToken, refreshToken, loginActivityId } =
       await this.authService.authenticateWithGoogle(
         dto.idToken,
         cookies?.[CART_COOKIE],
+        this.requestContext(req),
       );
     this.setRefreshCookie(res, refreshToken);
     if (cookies?.[CART_COOKIE]) {
       res.clearCookie(CART_COOKIE, { path: CART_COOKIE_PATH });
     }
-    return { user, accessToken };
+    return { user, accessToken, loginActivityId };
   }
 
   @Post('otp/request')
@@ -110,19 +123,20 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const cookies = req.cookies as Record<string, string | undefined>;
-    const { user, accessToken, refreshToken } =
+    const { user, accessToken, refreshToken, loginActivityId } =
       await this.authService.verifyOtpAndAuth(
         dto.phone,
         dto.code,
         dto.firstName,
         dto.lastName,
         cookies?.[CART_COOKIE],
+        this.requestContext(req),
       );
     this.setRefreshCookie(res, refreshToken);
     if (cookies?.[CART_COOKIE]) {
       res.clearCookie(CART_COOKIE, { path: CART_COOKIE_PATH });
     }
-    return { user, accessToken };
+    return { user, accessToken, loginActivityId };
   }
 
   @Post('refresh')
@@ -149,6 +163,32 @@ export class AuthController {
     await this.authService.logout(user.userId);
     res.clearCookie(REFRESH_COOKIE, { path: REFRESH_COOKIE_PATH });
     return { success: true };
+  }
+
+  // Called moments after login/register/sign-in, only if the browser grants
+  // the geolocation permission prompt — upgrades that login's audit row from
+  // its IP-based location to a precise GPS fix.
+  @Patch('login-activity/:id/location')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAccessGuard)
+  async attachLoginLocation(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AttachGpsLocationDto,
+  ) {
+    await this.loginActivityService.attachGpsLocation(
+      id,
+      { actorType: LoginActorType.CUSTOMER, userId: user.userId },
+      dto,
+    );
+    return { success: true };
+  }
+
+  private requestContext(req: Request) {
+    return {
+      ipAddress: getClientIp(req),
+      userAgent: req.headers['user-agent'] ?? null,
+    };
   }
 
   private setRefreshCookie(res: Response, refreshToken: string) {

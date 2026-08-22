@@ -13,6 +13,7 @@ import {
   ListTree,
   LogOut,
   Mail,
+  MapPin,
   MapPinOff,
   Megaphone,
   MessageSquareText,
@@ -42,6 +43,7 @@ const NAV_ITEMS = [
   { href: "/settings/sale-banners", label: "Sale Banners", icon: BadgePercent, permission: "settings.write" },
   { href: "/settings/gift-kits", label: "Gift Kits", icon: PackageOpen, permission: "settings.write" },
   { href: "/settings/societies", label: "Societies", icon: Building2, permission: "settings.write" },
+  { href: "/login-activity", label: "Login Activity", icon: MapPin, permission: "roles.write" },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

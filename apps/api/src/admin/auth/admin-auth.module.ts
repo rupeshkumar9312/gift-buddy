@@ -6,12 +6,14 @@ import { AdminUser } from '../entities/admin-user.entity';
 import { AdminAuthController } from './admin-auth.controller';
 import { AdminAuthService } from './admin-auth.service';
 import { AdminJwtAccessStrategy } from './strategies/admin-jwt-access.strategy';
+import { LoginActivityModule } from '../../login-activity/login-activity.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([AdminUser]),
     PassportModule,
     JwtModule.register({}),
+    LoginActivityModule,
   ],
   controllers: [AdminAuthController],
   providers: [AdminAuthService, AdminJwtAccessStrategy],

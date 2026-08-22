@@ -4,6 +4,9 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseIntPipe,
+  Patch,
   Post,
   Req,
   Res,
@@ -18,6 +21,10 @@ import {
   CurrentAdmin,
   type CurrentAdminPayload,
 } from './decorators/current-admin.decorator';
+import { LoginActivityService } from '../../login-activity/login-activity.service';
+import { LoginActorType } from '../../login-activity/entities/login-activity.entity';
+import { AttachGpsLocationDto } from '../../login-activity/dto/attach-gps-location.dto';
+import { getClientIp } from '../../login-activity/ip.util';
 
 const REFRESH_COOKIE = 'admin_refresh_token';
 const REFRESH_COOKIE_PATH = '/api/v1/admin/auth';
@@ -27,18 +34,23 @@ export class AdminAuthController {
   constructor(
     private readonly adminAuthService: AdminAuthService,
     private readonly config: ConfigService,
+    private readonly loginActivityService: LoginActivityService,
   ) {}
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() dto: AdminLoginDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { admin, accessToken, refreshToken } =
-      await this.adminAuthService.login(dto);
+    const { admin, accessToken, refreshToken, loginActivityId } =
+      await this.adminAuthService.login(dto, {
+        ipAddress: getClientIp(req),
+        userAgent: req.headers['user-agent'] ?? null,
+      });
     this.setRefreshCookie(res, refreshToken);
-    return { admin, accessToken };
+    return { admin, accessToken, loginActivityId };
   }
 
   @Post('refresh')
@@ -63,6 +75,25 @@ export class AdminAuthController {
   ) {
     await this.adminAuthService.logout(admin.adminId);
     res.clearCookie(REFRESH_COOKIE, { path: REFRESH_COOKIE_PATH });
+    return { success: true };
+  }
+
+  // Called moments after login, only if the browser grants the geolocation
+  // permission prompt — upgrades that login's audit row from its IP-based
+  // location to a precise GPS fix.
+  @Patch('login-activity/:id/location')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AdminJwtAccessGuard)
+  async attachLoginLocation(
+    @CurrentAdmin() admin: CurrentAdminPayload,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AttachGpsLocationDto,
+  ) {
+    await this.loginActivityService.attachGpsLocation(
+      id,
+      { actorType: LoginActorType.ADMIN, adminUserId: admin.adminId },
+      dto,
+    );
     return { success: true };
   }
 

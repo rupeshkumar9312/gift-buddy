@@ -51,10 +51,13 @@ async function apiFetch<T>(
 // ---- Auth ----
 
 export async function adminLogin(email: string, password: string) {
-  return apiFetch<{ admin: AdminUser; accessToken: string }>("/admin/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ email, password }),
-  });
+  return apiFetch<{ admin: AdminUser; accessToken: string; loginActivityId?: number }>(
+    "/admin/auth/login",
+    {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }
+  );
 }
 
 export async function adminRefresh() {
@@ -68,6 +71,44 @@ export async function adminLogout(accessToken: string) {
     method: "POST",
     accessToken,
   });
+}
+
+export async function attachAdminLoginLocation(
+  accessToken: string,
+  loginActivityId: number,
+  coords: { latitude: number; longitude: number }
+) {
+  return apiFetch<{ success: boolean }>(`/admin/auth/login-activity/${loginActivityId}/location`, {
+    method: "PATCH",
+    accessToken,
+    body: JSON.stringify(coords),
+  });
+}
+
+// ---- Login activity (audit log) ----
+
+export type LoginActivity = {
+  id: number;
+  actorType: "customer" | "admin";
+  actorName: string | null;
+  actorEmail: string | null;
+  method: string;
+  ipAddress: string;
+  userAgent: string | null;
+  city: string | null;
+  region: string | null;
+  country: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  locationSource: string | null;
+  createdAt: string;
+};
+
+export async function getLoginActivity(accessToken: string, page = 1, limit = 25) {
+  return apiFetch<Paginated<LoginActivity>>(
+    `/admin/login-activity?page=${page}&limit=${limit}`,
+    { accessToken }
+  );
 }
 
 // ---- Dashboard ----

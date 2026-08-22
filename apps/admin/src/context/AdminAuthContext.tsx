@@ -1,7 +1,29 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { adminLogin, adminLogout, adminRefresh, type AdminUser } from "@/lib/api";
+import { adminLogin, adminLogout, adminRefresh, attachAdminLoginLocation, type AdminUser } from "@/lib/api";
+
+// Fired in the background right after a successful admin login — never
+// awaited, since the browser's geolocation permission prompt is
+// user-interactive and can take anywhere from instant to "never" (left
+// unanswered). The login itself already has an IP-based location recorded
+// server-side; this just upgrades that same audit row to a precise GPS fix
+// if the prompt is granted. A denial or timeout does nothing further.
+function captureLoginLocation(accessToken: string, loginActivityId: number | undefined) {
+  if (!loginActivityId) return;
+  if (typeof navigator === "undefined" || !navigator.geolocation) return;
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      attachAdminLoginLocation(accessToken, loginActivityId, {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      }).catch(() => undefined);
+    },
+    () => undefined,
+    { maximumAge: 5 * 60 * 1000, timeout: 10_000 }
+  );
+}
 
 type AdminAuthContextValue = {
   admin: AdminUser | null;
@@ -33,6 +55,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     const data = await adminLogin(email, password);
     setAdmin(data.admin);
     setAccessToken(data.accessToken);
+    captureLoginLocation(data.accessToken, data.loginActivityId);
   };
 
   const logout = async () => {

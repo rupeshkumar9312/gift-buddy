@@ -2,11 +2,18 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
+import type { Express } from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
   const config = app.get(ConfigService);
+
+  // This app is always deployed behind a reverse proxy (Render, and
+  // Cloudflare in front of that) — without this, req.ip is just the
+  // proxy's own address for every request, which breaks both IP-based
+  // login-activity geolocation and per-client rate limiting.
+  (app.getHttpAdapter().getInstance() as Express).set('trust proxy', true);
 
   app.use(cookieParser());
 

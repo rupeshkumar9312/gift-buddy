@@ -7,12 +7,19 @@ import * as argon2 from 'argon2';
 import { AdminUser } from '../entities/admin-user.entity';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { toPublicAdmin } from './admin-auth.mapper';
+import { LoginActivityService } from '../../login-activity/login-activity.service';
+import { LoginActorType } from '../../login-activity/entities/login-activity.entity';
 
 type TokenPayload = {
   sub: number;
   email: string;
   role: string;
   permissions: string[];
+};
+
+export type LoginRequestContext = {
+  ipAddress: string;
+  userAgent: string | null;
 };
 
 @Injectable()
@@ -22,6 +29,7 @@ export class AdminAuthService {
     private readonly adminRepository: Repository<AdminUser>,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
+    private readonly loginActivityService: LoginActivityService,
   ) {}
 
   private withSecrets() {
@@ -33,7 +41,7 @@ export class AdminAuthService {
       .leftJoinAndSelect('role.permissions', 'permissions');
   }
 
-  async login(dto: AdminLoginDto) {
+  async login(dto: AdminLoginDto, ctx?: LoginRequestContext) {
     const admin = await this.withSecrets()
       .where('admin.email = :email', { email: dto.email })
       .getOne();
@@ -53,7 +61,7 @@ export class AdminAuthService {
     admin.lastLoginAt = new Date();
     await this.adminRepository.save(admin);
 
-    return this.issueSession(admin);
+    return this.issueSession(admin, 'password', ctx);
   }
 
   async refresh(refreshToken: string | undefined) {
@@ -123,7 +131,11 @@ export class AdminAuthService {
     });
   }
 
-  private async issueSession(admin: AdminUser) {
+  private async issueSession(
+    admin: AdminUser,
+    method?: string,
+    ctx?: LoginRequestContext,
+  ) {
     const payload: TokenPayload = {
       sub: admin.id,
       email: admin.email,
@@ -155,6 +167,26 @@ export class AdminAuthService {
       new Date(Date.now() + refreshTtlMs),
     );
 
-    return { admin: toPublicAdmin(admin), accessToken, refreshToken };
+    // Only a genuine login passes method+ctx — the silent background token
+    // refresh (`refresh()` above) calls this with neither, so it never
+    // creates a spurious "login" entry on every admin-panel page load.
+    let loginActivityId: number | undefined;
+    if (method && ctx) {
+      const activity = await this.loginActivityService.record({
+        actorType: LoginActorType.ADMIN,
+        adminUserId: admin.id,
+        method,
+        ipAddress: ctx.ipAddress,
+        userAgent: ctx.userAgent,
+      });
+      loginActivityId = activity.id;
+    }
+
+    return {
+      admin: toPublicAdmin(admin),
+      accessToken,
+      refreshToken,
+      loginActivityId,
+    };
   }
 }

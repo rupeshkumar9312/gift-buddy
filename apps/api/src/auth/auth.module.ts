@@ -5,6 +5,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from '../users/users.module';
 import { CartModule } from '../cart/cart.module';
+import { LoginActivityModule } from '../login-activity/login-activity.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
@@ -16,6 +17,7 @@ import { GoogleAuthService } from './google-auth.service';
   imports: [
     UsersModule,
     CartModule,
+    LoginActivityModule,
     PassportModule,
     JwtModule.register({}),
     TypeOrmModule.forFeature([OtpChallenge]),
