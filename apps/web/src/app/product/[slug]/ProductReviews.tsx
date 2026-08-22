@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
 import { getProductReviews, submitReview, type Review } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { Spinner } from "@/components/Spinner";
 import { StarRating } from "@/components/StarRating";
 
 const inputClass =
@@ -142,9 +143,10 @@ export function ProductReviews({
           <button
             type="submit"
             disabled={submitting}
-            className="w-fit rounded-full bg-primary px-6 py-2.5 text-xs font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:bg-muted"
+            className="flex w-fit items-center justify-center gap-2 rounded-full bg-primary px-6 py-2.5 text-xs font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:bg-muted"
           >
-            {submitting ? "Submitting..." : "Submit Review"}
+            {submitting && <Spinner size={13} />}
+            {submitting ? "Submitting…" : "Submit Review"}
           </button>
         </form>
       )}

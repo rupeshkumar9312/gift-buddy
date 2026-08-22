@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Package } from "lucide-react";
 import { PageBanner } from "@/components/PageBanner";
+import { Spinner } from "@/components/Spinner";
 import { cancelOrder, trackOrder, type OrderDetail } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
 
@@ -103,8 +104,9 @@ export default function TrackOrdersPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="mt-2 rounded-full bg-primary py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-2 flex items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
             >
+              {submitting && <Spinner size={16} />}
               {submitting ? "Searching…" : "Track Order"}
             </button>
           </form>
@@ -127,8 +129,9 @@ export default function TrackOrdersPage() {
                       <button
                         onClick={handleCancel}
                         disabled={cancelling}
-                        className="rounded-full bg-primary px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:opacity-60"
+                        className="flex items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:opacity-60"
                       >
+                        {cancelling && <Spinner size={12} />}
                         {cancelling ? "Cancelling…" : "Yes, cancel"}
                       </button>
                       <button

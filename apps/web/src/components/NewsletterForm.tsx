@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { subscribeNewsletter } from "@/lib/api";
+import { Spinner } from "./Spinner";
 
 export function NewsletterForm() {
   const [email, setEmail] = useState("");
@@ -42,9 +43,9 @@ export function NewsletterForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="shrink-0 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex shrink-0 items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {submitting ? "..." : "Join"}
+          {submitting ? <Spinner size={14} /> : "Join"}
         </button>
       </div>
       {error && <p className="text-xs text-red-500">{error}</p>}

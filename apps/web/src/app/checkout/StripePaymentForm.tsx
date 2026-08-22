@@ -8,6 +8,7 @@ import {
   useElements,
   useStripe,
 } from "@stripe/react-stripe-js";
+import { Spinner } from "@/components/Spinner";
 
 function PayButton({ onSuccess }: { onSuccess: () => void }) {
   const stripe = useStripe();
@@ -46,8 +47,9 @@ function PayButton({ onSuccess }: { onSuccess: () => void }) {
       <button
         type="submit"
         disabled={!stripe || submitting}
-        className="mt-2 w-full rounded-full bg-primary py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
       >
+        {submitting && <Spinner size={16} />}
         {submitting ? "Confirming payment…" : "Pay Now"}
       </button>
     </form>

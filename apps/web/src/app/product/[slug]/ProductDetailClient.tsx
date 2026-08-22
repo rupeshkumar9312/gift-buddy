@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { Heart, Minus, Plus, RefreshCcw, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
 import type { Product } from "@/lib/types";
+import { Spinner } from "@/components/Spinner";
 import { StarRating } from "@/components/StarRating";
 import { useCart } from "@/context/CartContext";
 import { formatMoney } from "@/lib/format";
@@ -17,6 +18,26 @@ export function ProductDetailClient({ product }: { product: Product }) {
   const [tab, setTab] = useState<Tab>("description");
   const { addToCart, toggleWishlist, isWishlisted } = useCart();
   const wishlisted = isWishlisted(product.id);
+  const [adding, setAdding] = useState(false);
+  const [togglingWishlist, setTogglingWishlist] = useState(false);
+
+  const handleAddToCart = async () => {
+    setAdding(true);
+    try {
+      await addToCart(product, quantity);
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleToggleWishlist = async () => {
+    setTogglingWishlist(true);
+    try {
+      await toggleWishlist(product);
+    } finally {
+      setTogglingWishlist(false);
+    }
+  };
 
   return (
     <div className="container-page py-14">
@@ -100,22 +121,27 @@ export function ProductDetailClient({ product }: { product: Product }) {
             </div>
 
             <button
-              onClick={() => addToCart(product, quantity)}
-              disabled={!product.inStock}
+              onClick={handleAddToCart}
+              disabled={!product.inStock || adding}
               className="flex flex-1 min-w-[180px] items-center justify-center gap-2 rounded-full bg-primary px-8 py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:bg-muted"
             >
-              <ShoppingBag size={16} />
-              {product.inStock ? "Add to Cart" : "Sold Out"}
+              {adding ? <Spinner size={16} /> : <ShoppingBag size={16} />}
+              {product.inStock ? (adding ? "Adding…" : "Add to Cart") : "Sold Out"}
             </button>
 
             <button
-              onClick={() => toggleWishlist(product)}
+              onClick={handleToggleWishlist}
+              disabled={togglingWishlist}
               aria-label="Add to wishlist"
-              className={`flex h-[50px] w-[50px] items-center justify-center rounded-full border transition ${
+              className={`flex h-[50px] w-[50px] items-center justify-center rounded-full border transition disabled:cursor-not-allowed ${
                 wishlisted ? "border-primary text-primary" : "border-line text-ink hover:border-primary hover:text-primary"
               }`}
             >
-              <Heart size={17} fill={wishlisted ? "currentColor" : "none"} />
+              {togglingWishlist ? (
+                <Spinner size={17} />
+              ) : (
+                <Heart size={17} fill={wishlisted ? "currentColor" : "none"} />
+              )}
             </button>
           </div>
 

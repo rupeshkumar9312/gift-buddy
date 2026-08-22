@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { PageBanner } from "@/components/PageBanner";
+import { Spinner } from "@/components/Spinner";
 import { useCart } from "@/context/CartContext";
 import { formatMoney } from "@/lib/format";
 
@@ -22,6 +23,25 @@ export default function CartPage() {
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
+
+  const handleUpdateQuantity = async (productId: number, quantity: number) => {
+    setUpdatingId(productId);
+    try {
+      await updateQuantity(productId, quantity);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleRemove = async (productId: number) => {
+    setUpdatingId(productId);
+    try {
+      await removeFromCart(productId);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const handleApplyCoupon = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -75,6 +95,7 @@ export default function CartPage() {
               <ul className="flex flex-col divide-y divide-line">
                 {lines.map((line) => {
                   const price = line.salePrice ?? line.price;
+                  const isUpdating = updatingId === line.productId;
                   return (
                     <li
                       key={line.productId}
@@ -93,16 +114,20 @@ export default function CartPage() {
                       <span className="text-sm text-muted">{formatMoney(price)}</span>
                       <div className="flex items-center rounded-full border border-line w-fit">
                         <button
-                          onClick={() => updateQuantity(line.productId, line.quantity - 1)}
-                          className="flex h-9 w-9 items-center justify-center text-ink transition hover:text-primary"
+                          onClick={() => handleUpdateQuantity(line.productId, line.quantity - 1)}
+                          disabled={isUpdating}
+                          className="flex h-9 w-9 items-center justify-center text-ink transition hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
                           aria-label="Decrease quantity"
                         >
                           <Minus size={12} />
                         </button>
-                        <span className="w-7 text-center text-sm">{line.quantity}</span>
+                        <span className="flex w-7 items-center justify-center text-center text-sm">
+                          {isUpdating ? <Spinner size={12} className="text-primary" /> : line.quantity}
+                        </span>
                         <button
-                          onClick={() => updateQuantity(line.productId, line.quantity + 1)}
-                          className="flex h-9 w-9 items-center justify-center text-ink transition hover:text-primary"
+                          onClick={() => handleUpdateQuantity(line.productId, line.quantity + 1)}
+                          disabled={isUpdating}
+                          className="flex h-9 w-9 items-center justify-center text-ink transition hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
                           aria-label="Increase quantity"
                         >
                           <Plus size={12} />
@@ -110,9 +135,10 @@ export default function CartPage() {
                       </div>
                       <span className="text-sm font-medium text-ink">{formatMoney(line.lineTotal)}</span>
                       <button
-                        onClick={() => removeFromCart(line.productId)}
+                        onClick={() => handleRemove(line.productId)}
+                        disabled={isUpdating}
                         aria-label="Remove item"
-                        className="flex h-9 w-9 items-center justify-center text-muted transition hover:text-primary"
+                        className="flex h-9 w-9 items-center justify-center text-muted transition hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <X size={16} />
                       </button>
@@ -154,9 +180,10 @@ export default function CartPage() {
                       <button
                         type="submit"
                         disabled={applying}
-                        className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60"
+                        className="flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {applying ? "Applying..." : "Apply"}
+                        {applying && <Spinner size={14} />}
+                        {applying ? "Applying…" : "Apply"}
                       </button>
                     </form>
                   )}

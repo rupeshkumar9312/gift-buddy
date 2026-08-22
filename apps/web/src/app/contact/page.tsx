@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { PageBanner } from "@/components/PageBanner";
+import { Spinner } from "@/components/Spinner";
 import { submitContact } from "@/lib/api";
 
 const inputClass =
@@ -89,9 +90,10 @@ export default function ContactPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="mt-2 w-fit rounded-full bg-primary px-8 py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-2 flex w-fit items-center justify-center gap-2 rounded-full bg-primary px-8 py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {submitting ? "Sending..." : "Send Message"}
+              {submitting && <Spinner size={16} />}
+              {submitting ? "Sending…" : "Send Message"}
             </button>
           </form>
 

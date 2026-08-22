@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageBanner } from "@/components/PageBanner";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { Spinner } from "@/components/Spinner";
 import { useAuth } from "@/context/AuthContext";
 
 const inputClass =
@@ -74,7 +75,9 @@ export default function AccountPage() {
     return (
       <>
         <PageBanner title="My Account" crumbs={[{ label: "Home", href: "/" }, { label: "My Account" }]} />
-        <div className="container-page py-14 text-center text-sm text-muted">Loading…</div>
+        <div className="container-page flex justify-center py-20">
+          <Spinner size={28} className="text-primary" />
+        </div>
       </>
     );
   }
@@ -164,8 +167,9 @@ export default function AccountPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="mt-2 rounded-full bg-primary py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-2 flex items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
                 >
+                  {submitting && <Spinner size={16} />}
                   {submitting ? "Signing in…" : "Login"}
                 </button>
               </form>
@@ -196,8 +200,9 @@ export default function AccountPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="mt-2 rounded-full bg-primary py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-2 flex items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
                 >
+                  {submitting && <Spinner size={16} />}
                   {submitting ? "Creating account…" : "Create Account"}
                 </button>
                 <p className="text-xs leading-relaxed text-muted">

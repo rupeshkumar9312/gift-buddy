@@ -6,6 +6,7 @@ import { Gift } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageBanner } from "@/components/PageBanner";
+import { Spinner } from "@/components/Spinner";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -401,8 +402,9 @@ export default function CheckoutPage() {
                 <button
                   type="submit"
                   disabled={submitting || !shippingMethodId}
-                  className="w-full rounded-full bg-primary py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
                 >
+                  {submitting && <Spinner size={16} />}
                   {submitting
                     ? "Placing order…"
                     : gatewayEnabled
@@ -442,8 +444,9 @@ export default function CheckoutPage() {
                       <button
                         onClick={handleDevConfirm}
                         disabled={confirming}
-                        className="mt-4 w-full rounded-full bg-primary py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+                        className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
                       >
+                        {confirming && <Spinner size={16} />}
                         {confirming
                           ? "Confirming…"
                           : "Simulate Payment (Dev Mode)"}

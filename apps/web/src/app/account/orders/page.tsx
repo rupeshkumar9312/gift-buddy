@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PackageSearch } from "lucide-react";
 import { PageBanner } from "@/components/PageBanner";
+import { Spinner } from "@/components/Spinner";
 import { useAuth } from "@/context/AuthContext";
 import { getOrders, type OrderSummary } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
@@ -37,7 +38,9 @@ export default function OrderHistoryPage() {
 
       <div className="container-page py-14">
         {authLoading || (accessToken && orders === null) ? (
-          <p className="py-10 text-center text-sm text-muted">Loading…</p>
+          <div className="flex justify-center py-16">
+            <Spinner size={26} className="text-primary" />
+          </div>
         ) : !user ? (
           <div className="flex flex-col items-center gap-4 py-16 text-center">
             <p className="text-sm text-muted">Sign in to view your order history.</p>

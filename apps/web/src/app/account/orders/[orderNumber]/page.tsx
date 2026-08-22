@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { PageBanner } from "@/components/PageBanner";
+import { Spinner } from "@/components/Spinner";
 import { useAuth } from "@/context/AuthContext";
 import { cancelOrder, getOrder, type OrderDetail } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
@@ -68,7 +69,9 @@ export default function OrderDetailPage({
 
       <div className="container-page py-14">
         {authLoading || (!order && !error) ? (
-          <p className="py-10 text-center text-sm text-muted">Loading…</p>
+          <div className="flex justify-center py-16">
+            <Spinner size={26} className="text-primary" />
+          </div>
         ) : error || !order ? (
           <p className="py-10 text-center text-sm text-muted">
             We couldn&rsquo;t find that order.{" "}
@@ -96,8 +99,9 @@ export default function OrderDetailPage({
                         <button
                           onClick={handleCancel}
                           disabled={cancelling}
-                          className="rounded-full bg-primary px-5 py-2 text-xs font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:opacity-60"
+                          className="flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-xs font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:opacity-60"
                         >
+                          {cancelling && <Spinner size={13} />}
                           {cancelling ? "Cancelling…" : "Yes, cancel order"}
                         </button>
                         <button

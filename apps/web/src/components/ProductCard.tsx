@@ -2,10 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import { Eye, Heart, ShoppingBag } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { useCart } from "@/context/CartContext";
 import { formatMoney } from "@/lib/format";
+import { Spinner } from "./Spinner";
 import { StarRating } from "./StarRating";
 
 const badgeStyles: Record<NonNullable<Product["badge"]>, string> = {
@@ -23,6 +25,26 @@ const badgeLabel: Record<NonNullable<Product["badge"]>, string> = {
 export function ProductCard({ product }: { product: Product }) {
   const { addToCart, toggleWishlist, isWishlisted } = useCart();
   const wishlisted = isWishlisted(product.id);
+  const [adding, setAdding] = useState(false);
+  const [togglingWishlist, setTogglingWishlist] = useState(false);
+
+  const handleAddToCart = async () => {
+    setAdding(true);
+    try {
+      await addToCart(product);
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleToggleWishlist = async () => {
+    setTogglingWishlist(true);
+    try {
+      await toggleWishlist(product);
+    } finally {
+      setTogglingWishlist(false);
+    }
+  };
 
   return (
     <div className="group relative flex flex-col">
@@ -55,23 +77,28 @@ export function ProductCard({ product }: { product: Product }) {
         )}
 
         <button
-          onClick={() => toggleWishlist(product)}
+          onClick={handleToggleWishlist}
+          disabled={togglingWishlist}
           aria-label="Add to wishlist"
-          className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm transition hover:bg-primary hover:text-white ${
+          className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm transition hover:bg-primary hover:text-white disabled:cursor-not-allowed ${
             wishlisted ? "text-primary" : "text-ink"
           }`}
         >
-          <Heart size={15} fill={wishlisted ? "currentColor" : "none"} />
+          {togglingWishlist ? (
+            <Spinner size={14} />
+          ) : (
+            <Heart size={15} fill={wishlisted ? "currentColor" : "none"} />
+          )}
         </button>
 
         <div className="absolute inset-x-3 bottom-3 flex translate-y-2 gap-2 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
           <button
-            onClick={() => addToCart(product)}
-            disabled={!product.inStock}
+            onClick={handleAddToCart}
+            disabled={!product.inStock || adding}
             className="flex flex-1 items-center justify-center gap-2 rounded-full bg-ink py-2.5 text-xs font-medium uppercase tracking-wide text-white transition hover:bg-primary disabled:cursor-not-allowed disabled:bg-muted"
           >
-            <ShoppingBag size={13} />
-            {product.inStock ? "Add to Cart" : "Sold Out"}
+            {adding ? <Spinner size={13} /> : <ShoppingBag size={13} />}
+            {product.inStock ? (adding ? "Adding…" : "Add to Cart") : "Sold Out"}
           </button>
           <Link
             href={`/product/${product.slug}`}
