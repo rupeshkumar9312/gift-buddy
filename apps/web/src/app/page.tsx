@@ -1,4 +1,5 @@
 import { Hero } from "@/components/home/Hero";
+import { HomeSignInPrompt } from "@/components/HomeSignInPrompt";
 import { UspStrip } from "@/components/home/UspStrip";
 import { CategoryStrip } from "@/components/home/CategoryStrip";
 import { OccasionBanner } from "@/components/home/OccasionBanner";
@@ -13,6 +14,7 @@ import { Testimonials } from "@/components/home/Testimonials";
 export default function Home() {
   return (
     <>
+      <HomeSignInPrompt />
       <Hero />
       <UspStrip />
       <CategoryStrip />

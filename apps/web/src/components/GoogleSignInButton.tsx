@@ -51,9 +51,14 @@ declare global {
 export function GoogleSignInButton({
   onCredential,
   autoPrompt = true,
+  showButton = true,
 }: {
   onCredential: (idToken: string) => void;
   autoPrompt?: boolean;
+  // False for a soft, non-blocking suggestion (e.g. the home page's One Tap
+  // nudge) — renders only the floating One Tap dialog, skipping the inline
+  // "Continue with Google" button that would otherwise sit in the page flow.
+  showButton?: boolean;
 }) {
   const buttonRef = useRef<HTMLDivElement>(null);
   const onCredentialRef = useRef(onCredential);
@@ -80,7 +85,8 @@ export function GoogleSignInButton({
   }, [onCredential]);
 
   useEffect(() => {
-    if (!scriptLoaded || !buttonRef.current || !window.google || initializedRef.current) return;
+    if (!scriptLoaded || !window.google || initializedRef.current) return;
+    if (showButton && !buttonRef.current) return;
     initializedRef.current = true;
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
@@ -93,12 +99,14 @@ export function GoogleSignInButton({
       // and GSI falls back to the classic flow.
       use_fedcm_for_prompt: true,
     });
-    window.google.accounts.id.renderButton(buttonRef.current, {
-      theme: "outline",
-      size: "large",
-      width: buttonRef.current.offsetWidth,
-      text: "continue_with",
-    });
+    if (showButton && buttonRef.current) {
+      window.google.accounts.id.renderButton(buttonRef.current, {
+        theme: "outline",
+        size: "large",
+        width: buttonRef.current.offsetWidth,
+        text: "continue_with",
+      });
+    }
     if (autoPrompt) {
       window.google.accounts.id.prompt((notification) => {
         if (notification.isNotDisplayed()) {
@@ -108,7 +116,7 @@ export function GoogleSignInButton({
         }
       });
     }
-  }, [scriptLoaded, autoPrompt]);
+  }, [scriptLoaded, autoPrompt, showButton]);
 
   if (!GOOGLE_CLIENT_ID) return null;
 
@@ -119,7 +127,7 @@ export function GoogleSignInButton({
         strategy="afterInteractive"
         onLoad={() => setScriptLoaded(true)}
       />
-      <div ref={buttonRef} />
+      {showButton && <div ref={buttonRef} />}
     </>
   );
 }
