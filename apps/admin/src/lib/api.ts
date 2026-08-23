@@ -307,6 +307,7 @@ export type AdminProductSummary = {
   isActive: boolean;
   image: string | null;
   returnDays: number | null;
+  deliveryEstimateDays: number | null;
 };
 
 export type AdminProductDetail = AdminProductSummary & {
@@ -328,6 +329,7 @@ export type ProductInput = {
   isFeatured?: boolean;
   isActive?: boolean;
   returnDays?: number | null;
+  deliveryEstimateDays?: number | null;
   images?: { url: string; altText?: string }[];
 };
 

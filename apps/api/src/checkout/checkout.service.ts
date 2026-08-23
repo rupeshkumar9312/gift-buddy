@@ -70,6 +70,18 @@ function generateOrderNumber(): string {
   return `GB-${date}-${suffix}`;
 }
 
+// The order can't ship before its slowest item is ready, so this takes the
+// max across every line's product override rather than e.g. the first item.
+// Null (the common case — every item is same-day eligible) leaves the
+// existing 5PM-cutoff logic in charge, unchanged.
+function computeDeliveryExtraDays(
+  products: { deliveryEstimateDays: number | null }[],
+): number | null {
+  const days = products.map((p) => p.deliveryEstimateDays ?? 0);
+  const max = Math.max(0, ...days);
+  return max > 0 ? max : null;
+}
+
 @Injectable()
 export class CheckoutService {
   private readonly logger = new Logger(CheckoutService.name);
@@ -252,6 +264,9 @@ export class CheckoutService {
         shippingAddress,
         billingAddress,
         shippingMethodName: shippingMethod.name,
+        deliveryExtraDays: computeDeliveryExtraDays(
+          items.map((item) => item.product),
+        ),
       });
       const savedOrder = await manager.save(Order, created);
 
@@ -436,6 +451,9 @@ export class CheckoutService {
         billingAddress: shippingAddress,
         shippingMethodName: shippingMethod.name,
         placedAt: new Date(),
+        deliveryExtraDays: computeDeliveryExtraDays(
+          input.items.map((item) => productsById.get(item.productId)!),
+        ),
       });
       const savedOrder = await manager.save(Order, created);
 

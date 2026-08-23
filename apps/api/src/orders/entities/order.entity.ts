@@ -92,6 +92,12 @@ export class Order {
   @Column({ type: 'datetime', nullable: true })
   placedAt: Date | null;
 
+  // Snapshotted at checkout from the max across this order's line items'
+  // products' `deliveryEstimateDays` — null means every item was same-day
+  // eligible, so the storefront applies the usual cutoff logic unchanged.
+  @Column({ type: 'int', nullable: true })
+  deliveryExtraDays: number | null;
+
   @OneToMany(() => OrderItem, (item) => item.order, { cascade: true })
   items: OrderItem[];
 

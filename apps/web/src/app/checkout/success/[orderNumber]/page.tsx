@@ -7,7 +7,7 @@ import { PageBanner } from "@/components/PageBanner";
 import { Spinner } from "@/components/Spinner";
 import { useAuth } from "@/context/AuthContext";
 import { getOrder, type OrderDetail } from "@/lib/api";
-import { formatMoney, getEstimatedDelivery } from "@/lib/format";
+import { deliveryDayLabel, formatMoney, getEstimatedDelivery } from "@/lib/format";
 
 export default function CheckoutSuccessPage({
   params,
@@ -55,14 +55,14 @@ export default function CheckoutSuccessPage({
                 <span className="font-medium capitalize text-ink">{order.status.replace("_", " ")}</span>
               </div>
               {(() => {
-                const delivery = getEstimatedDelivery(order.createdAt);
+                const delivery = getEstimatedDelivery(order.createdAt, order.deliveryExtraDays);
                 return (
                   <div className="flex items-center gap-2.5 border-b border-line py-3">
                     <Truck size={18} className="shrink-0 text-primary" />
                     <span>
                       Estimated delivery:{" "}
                       <strong className="font-medium text-ink">
-                        {delivery.isSameDay ? "Today" : "Tomorrow"}, {delivery.dateLabel}
+                        {deliveryDayLabel(delivery)}, {delivery.dateLabel}
                       </strong>
                     </span>
                   </div>

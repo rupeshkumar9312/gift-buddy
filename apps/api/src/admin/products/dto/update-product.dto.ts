@@ -67,6 +67,11 @@ export class UpdateProductDto {
   @IsOptional()
   returnDays?: number | null;
 
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  deliveryEstimateDays?: number | null;
+
   @ValidateNested({ each: true })
   @Type(() => ProductImageInputDto)
   @ArrayMinSize(1)

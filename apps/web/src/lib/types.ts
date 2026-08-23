@@ -22,6 +22,7 @@ export type Product = {
   inStock: boolean;
   gallery: string[];
   returnDays?: number | null;
+  deliveryEstimateDays?: number | null;
 };
 
 export type BlogPost = {

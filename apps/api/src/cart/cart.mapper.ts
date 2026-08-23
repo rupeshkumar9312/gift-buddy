@@ -11,6 +11,7 @@ export type CartItemResponse = {
   inStock: boolean;
   stockQty: number;
   lineTotal: number;
+  deliveryEstimateDays: number | null;
 };
 
 export type CartResponse = {
@@ -43,6 +44,7 @@ export function toCartItemResponse(item: CartItem): CartItemResponse {
     inStock: product.stockQty > 0,
     stockQty: product.stockQty,
     lineTotal: Math.round(effectivePrice * item.quantity * 100) / 100,
+    deliveryEstimateDays: product.deliveryEstimateDays,
   };
 }
 

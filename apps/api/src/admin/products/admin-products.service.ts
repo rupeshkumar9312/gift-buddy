@@ -98,6 +98,7 @@ export class AdminProductsService {
       isFeatured: dto.isFeatured ?? false,
       isActive: dto.isActive ?? true,
       returnDays: dto.returnDays ?? 30,
+      deliveryEstimateDays: dto.deliveryEstimateDays ?? null,
     });
 
     const saved = await this.save(product);
@@ -124,6 +125,9 @@ export class AdminProductsService {
     if (dto.isFeatured !== undefined) product.isFeatured = dto.isFeatured;
     if (dto.isActive !== undefined) product.isActive = dto.isActive;
     if (dto.returnDays !== undefined) product.returnDays = dto.returnDays;
+    if (dto.deliveryEstimateDays !== undefined) {
+      product.deliveryEstimateDays = dto.deliveryEstimateDays;
+    }
 
     await this.save(product);
     if (dto.images) {

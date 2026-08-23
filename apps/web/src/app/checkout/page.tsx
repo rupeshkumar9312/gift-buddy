@@ -21,7 +21,7 @@ import {
   type ShippingMethod,
   type Society,
 } from "@/lib/api";
-import { formatMoney, getEstimatedDelivery, type EstimatedDelivery } from "@/lib/format";
+import { deliveryDayLabel, formatMoney, getEstimatedDelivery, type EstimatedDelivery } from "@/lib/format";
 import { StripePaymentForm } from "./StripePaymentForm";
 
 const inputClass =
@@ -89,13 +89,19 @@ export default function CheckoutPage() {
     getSocieties()
       .then(setSocieties)
       .catch(() => undefined);
+    // The order can't ship before its slowest item is ready, so this takes
+    // the max across every line's product override — null (every item
+    // same-day eligible) leaves the cutoff logic in charge, unchanged.
+    const maxExtraDays = Math.max(0, ...lines.map((l) => l.deliveryEstimateDays ?? 0));
     // Deferred a tick (rather than a direct synchronous setState here) only
     // to satisfy the lint rule against synchronous setState in an effect
     // body — the effect itself already never runs during SSR, which is the
     // actual reason this is computed here instead of during render (see the
     // `delivery` state comment above).
-    Promise.resolve().then(() => setDelivery(getEstimatedDelivery()));
-  }, []);
+    Promise.resolve().then(() =>
+      setDelivery(getEstimatedDelivery(new Date(), maxExtraDays > 0 ? maxExtraDays : null)),
+    );
+  }, [lines]);
 
   const [prefilled, setPrefilled] = useState(false);
   if (user && !prefilled) {
@@ -480,7 +486,7 @@ export default function CheckoutPage() {
                 <span>
                   Estimated delivery:{" "}
                   <strong className="font-medium">
-                    {delivery.isSameDay ? "Today" : "Tomorrow"}, {delivery.dateLabel}
+                    {deliveryDayLabel(delivery)}, {delivery.dateLabel}
                   </strong>
                 </span>
               </div>

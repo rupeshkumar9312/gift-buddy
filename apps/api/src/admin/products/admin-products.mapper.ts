@@ -14,6 +14,7 @@ export type AdminProductSummary = {
   isActive: boolean;
   image: string | null;
   returnDays: number | null;
+  deliveryEstimateDays: number | null;
 };
 
 export type AdminProductDetail = AdminProductSummary & {
@@ -45,6 +46,7 @@ export function toAdminProductSummary(product: Product): AdminProductSummary {
     isActive: product.isActive,
     image: primaryImage(product),
     returnDays: product.returnDays,
+    deliveryEstimateDays: product.deliveryEstimateDays,
   };
 }
 

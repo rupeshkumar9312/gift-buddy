@@ -26,6 +26,8 @@ function toFormState(product?: AdminProductDetail) {
     isActive: product?.isActive ?? true,
     returnsEnabled: product ? (product.returnDays ?? 0) > 0 : true,
     returnDays: product?.returnDays ?? 30,
+    sameDayDelivery: product ? !product.deliveryEstimateDays : true,
+    deliveryEstimateDays: product?.deliveryEstimateDays ?? 1,
   };
 }
 
@@ -85,6 +87,7 @@ export function ProductForm({
         isFeatured: form.isFeatured,
         isActive: form.isActive,
         returnDays: form.returnsEnabled ? Math.max(1, form.returnDays) : null,
+        deliveryEstimateDays: form.sameDayDelivery ? null : Math.max(1, form.deliveryEstimateDays),
         images: validImages.map((img) => ({ url: img.url, altText: img.altText || undefined })),
       });
     } catch (err) {
@@ -331,6 +334,39 @@ export function ProductForm({
               <p className="text-xs text-muted">
                 Controls the &quot;N-day easy returns&quot; line on this product&apos;s storefront page.
                 Uncheck to hide it entirely for this product.
+              </p>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-line bg-white p-6">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Delivery</h2>
+            <div className="mt-4 flex flex-col gap-3 text-sm">
+              <label className="flex items-center gap-2.5">
+                <input
+                  type="checkbox"
+                  checked={form.sameDayDelivery}
+                  onChange={(e) => setForm({ ...form, sameDayDelivery: e.target.checked })}
+                  className="h-4 w-4 accent-[#be7374]"
+                />
+                Same-day delivery eligible
+              </label>
+              {!form.sameDayDelivery && (
+                <Field label="Delivery estimate (days)">
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.deliveryEstimateDays}
+                    onChange={(e) =>
+                      setForm({ ...form, deliveryEstimateDays: Math.max(1, Number(e.target.value)) })
+                    }
+                    className={`${inputClass} max-w-[140px]`}
+                  />
+                </Field>
+              )}
+              <p className="text-xs text-muted">
+                Checked: orders placed before 5 PM IST show same-day delivery, otherwise next day —
+                the usual storefront rule. Unchecked: always shows a flat &quot;N-day&quot; estimate
+                instead, regardless of order time.
               </p>
             </div>
           </section>

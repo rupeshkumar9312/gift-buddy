@@ -64,6 +64,12 @@ export class Product {
   @Column({ type: 'int', nullable: true, default: 30 })
   returnDays: number | null;
 
+  // Null = same-day delivery, using the 5PM-IST-cutoff logic (see
+  // getEstimatedDelivery in apps/web). A positive number overrides that
+  // with a flat "N days from order date" estimate instead.
+  @Column({ type: 'int', nullable: true })
+  deliveryEstimateDays: number | null;
+
   @OneToMany(() => ProductImage, (image) => image.product, { cascade: true })
   images: ProductImage[];
 

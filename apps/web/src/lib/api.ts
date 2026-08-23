@@ -26,6 +26,7 @@ type ApiProduct = {
   inStock: boolean;
   gallery: string[];
   returnDays: number | null;
+  deliveryEstimateDays: number | null;
 };
 
 type Paginated<T> = {
@@ -95,6 +96,7 @@ function toProduct(product: ApiProduct): Product {
     inStock: product.inStock,
     gallery: product.gallery,
     returnDays: product.returnDays,
+    deliveryEstimateDays: product.deliveryEstimateDays,
   };
 }
 
@@ -148,6 +150,7 @@ export type CartItem = {
   inStock: boolean;
   stockQty: number;
   lineTotal: number;
+  deliveryEstimateDays: number | null;
 };
 
 export type Cart = {
@@ -350,6 +353,7 @@ export type OrderDetail = OrderSummary & {
   billingAddress: AddressInput;
   shippingMethodName: string;
   placedAt: string | null;
+  deliveryExtraDays: number | null;
   items: OrderItemDetail[];
   statusHistory: OrderStatusEvent[];
 };

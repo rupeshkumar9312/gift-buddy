@@ -20,6 +20,7 @@ export type OrderDetailResponse = OrderSummaryResponse & {
   billingAddress: Order['billingAddress'];
   shippingMethodName: string;
   placedAt: Date | null;
+  deliveryExtraDays: number | null;
   items: {
     productName: string;
     productSlug: string | null;
@@ -69,6 +70,7 @@ export function toOrderDetail(
     billingAddress: order.billingAddress,
     shippingMethodName: order.shippingMethodName,
     placedAt: order.placedAt,
+    deliveryExtraDays: order.deliveryExtraDays,
     items: items.map((item) => ({
       productName: item.productName,
       productSlug: item.productSlug,
