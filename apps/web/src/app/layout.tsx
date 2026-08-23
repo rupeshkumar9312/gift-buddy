@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CartDrawer } from "@/components/CartDrawer";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${jost.variable} ${sacramento.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col text-ink">
+        <GoogleAnalytics />
         <AuthProvider>
           <CartProvider>
             <Header />

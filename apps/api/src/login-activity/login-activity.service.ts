@@ -19,6 +19,8 @@ type IpGeo = {
   city: string | null;
   region: string | null;
   country: string | null;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 export type LoginActivityResponse = {
@@ -105,6 +107,8 @@ export class LoginActivityService {
         city: geo?.city ?? null,
         region: geo?.region ?? null,
         country: geo?.country ?? null,
+        latitude: geo?.latitude != null ? geo.latitude.toFixed(6) : null,
+        longitude: geo?.longitude != null ? geo.longitude.toFixed(6) : null,
         locationSource: geo ? 'ip' : null,
       }),
     );
@@ -168,7 +172,7 @@ export class LoginActivityService {
         IP_LOOKUP_TIMEOUT_MS,
       );
       const res = await fetch(
-        `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,city,regionName,country`,
+        `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,city,regionName,country,lat,lon`,
         { signal: controller.signal },
       );
       clearTimeout(timeout);
@@ -177,12 +181,16 @@ export class LoginActivityService {
         city?: string;
         regionName?: string;
         country?: string;
+        lat?: number;
+        lon?: number;
       };
       if (data.status !== 'success') return null;
       return {
         city: data.city ?? null,
         region: data.regionName ?? null,
         country: data.country ?? null,
+        latitude: data.lat ?? null,
+        longitude: data.lon ?? null,
       };
     } catch (error) {
       // Never let a slow/unreachable geo-IP service affect a login.

@@ -1,20 +1,32 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { MapPin } from "lucide-react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import { getLoginActivity, type LoginActivity, type Paginated } from "@/lib/api";
 import { formatDate } from "@/lib/format";
+
+// Leaflet touches `window` at import time, so it can only ever run in the
+// browser — ssr:false keeps Next from trying (and failing) to render it
+// during the server pass of this otherwise client-rendered page.
+const LoginActivityMap = dynamic(
+  () => import("@/components/LoginActivityMap").then((mod) => mod.LoginActivityMap),
+  { ssr: false }
+);
 
 const ACTOR_TONE: Record<LoginActivity["actorType"], string> = {
   customer: "bg-sky-100 text-sky-700",
   admin: "bg-violet-100 text-violet-700",
 };
 
+const MAP_SAMPLE_SIZE = 200;
+
 export default function LoginActivityPage() {
   const { accessToken } = useAdminAuth();
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<Paginated<LoginActivity> | null>(null);
+  const [mapActivities, setMapActivities] = useState<LoginActivity[]>([]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -23,6 +35,16 @@ export default function LoginActivityPage() {
       .catch(() => undefined);
   }, [accessToken, page]);
 
+  // A separate, larger sample just for the map — independent of the
+  // table's pagination, so the map gives a real overview instead of only
+  // ever plotting whichever 25 rows the table happens to be showing.
+  useEffect(() => {
+    if (!accessToken) return;
+    getLoginActivity(accessToken, 1, MAP_SAMPLE_SIZE)
+      .then((res) => setMapActivities(res.data))
+      .catch(() => undefined);
+  }, [accessToken]);
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -30,6 +52,20 @@ export default function LoginActivityPage() {
         <p className="mt-1 text-sm text-muted">
           Audit trail of every customer and admin sign-in — {result?.meta.total ?? 0} recorded.
         </p>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-4 text-xs text-muted">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-sky-500" />
+            Approximate (IP address)
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
+            Precise (GPS)
+          </span>
+        </div>
+        <LoginActivityMap activities={mapActivities} />
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-line bg-white">
