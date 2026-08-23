@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Served from the web app at /admin (see apps/web/next.config.ts rewrites).
+  basePath: "/admin",
   images: {
     remotePatterns: [
       {
