@@ -7,6 +7,7 @@ import { CartDrawer } from "@/components/CartDrawer";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { Analytics } from "@vercel/analytics/next";
 
 const jost = Jost({
   variable: "--font-jost",
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <CartDrawer />
           </CartProvider>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
