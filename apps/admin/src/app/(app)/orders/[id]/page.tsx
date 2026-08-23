@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Image from "next/image";
+import { MessageCircle } from "lucide-react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import {
   getOrder,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/api";
 import { formatMoney, STATUS_LABEL } from "@/lib/format";
 import { StatusBadge } from "@/components/StatusBadge";
+import { buildOrderWhatsAppLink } from "@/lib/whatsapp";
 
 const NEXT_STATUS_OPTIONS: Record<string, string[]> = {
   pending_payment: [],
@@ -82,6 +84,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       ? ["fulfilled", "cancelled"]
       : NEXT_STATUS_OPTIONS[order.status] ?? [];
 
+  const whatsAppLink = buildOrderWhatsAppLink({
+    phone: order.shippingAddress.phone,
+    firstName: order.shippingAddress.firstName,
+    orderNumber: order.orderNumber,
+    statusLabel: STATUS_LABEL[order.status] ?? order.status,
+    orderEmail: order.email,
+  });
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -90,6 +100,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           <p className="mt-1 text-sm text-muted">{order.email}</p>
         </div>
         <div className="flex items-center gap-2">
+          {canWrite && whatsAppLink && (
+            <a
+              href={whatsAppLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-medium text-ink transition hover:border-primary hover:text-primary"
+            >
+              <MessageCircle size={15} />
+              Send WhatsApp Update
+            </a>
+          )}
           {isCod && (
             <span className="inline-flex items-center rounded-full bg-cream px-2.5 py-1 text-xs font-medium text-muted">
               Cash on Delivery{codCollected ? " · Collected" : ""}
