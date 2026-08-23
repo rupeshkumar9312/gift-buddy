@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { adminLogin, adminLogout, adminRefresh, attachAdminLoginLocation, type AdminUser } from "@/lib/api";
 
 // Fired in the background right after a successful admin login — never
@@ -40,8 +40,23 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // React Strict Mode double-invokes effects in dev (mount → cleanup →
+  // mount again). Without this guard, that fired two concurrent
+  // /admin/auth/refresh calls using the *same* not-yet-rotated
+  // refresh-token cookie. The refresh endpoint rotates the token on every
+  // call and revokes the whole session if it ever sees a token that
+  // doesn't match the latest stored hash (its replay-attack defense) — so
+  // the second of those two calls looked exactly like a replayed/stolen
+  // token and wiped out the session the first call had just legitimately
+  // renewed. Every reload was silently logging admins out. The ref
+  // survives the synthetic double-invoke (same component instance), so
+  // the call only actually fires once per real mount.
+  const hasAttemptedRefresh = useRef(false);
 
   useEffect(() => {
+    if (hasAttemptedRefresh.current) return;
+    hasAttemptedRefresh.current = true;
+
     adminRefresh()
       .then((data) => {
         setAdmin(data.admin);

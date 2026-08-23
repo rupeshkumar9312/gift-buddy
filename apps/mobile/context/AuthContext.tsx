@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   GoogleSignin,
   isErrorWithCode,
@@ -60,12 +60,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // React (Strict Mode, or any effect re-run) can double-invoke this on
+  // mount. Without this guard, that fires two concurrent /auth/refresh
+  // calls using the *same* not-yet-rotated refresh-token cookie. The
+  // refresh endpoint rotates the token on every call and revokes the whole
+  // session if it ever sees a token that doesn't match the latest stored
+  // hash (its replay-attack defense) — so the second of those two calls
+  // looks exactly like a replayed/stolen token and wipes out the session
+  // the first call had just legitimately renewed. The ref survives a
+  // synthetic double-invoke (same component instance), so the call only
+  // actually fires once per real mount.
+  const hasAttemptedRefresh = useRef(false);
 
   // On first load, try to silently restore a session from the refresh cookie
   // — the native networking stack persists cookies the same way a browser
   // does, so this works the same as it does on web (see the cookie note in
   // lib/api.ts).
   useEffect(() => {
+    if (hasAttemptedRefresh.current) return;
+    hasAttemptedRefresh.current = true;
+
     fetch(`${API_URL}/auth/refresh`, { method: "POST", credentials: "include" })
       .then(async (res) => {
         if (!res.ok) return;
