@@ -468,6 +468,46 @@ export async function markCodCollected(accessToken: string, id: number) {
   });
 }
 
+export type CreateAdminOrderInput = {
+  email: string;
+  shippingAddress: {
+    firstName: string;
+    lastName: string;
+    line1: string;
+    line2: string;
+    city: string;
+    region: string;
+    postalCode: string;
+    country: string;
+    phone?: string;
+  };
+  items: { productId: number; quantity: number }[];
+  shippingMethodId: number;
+  paymentMethod: "cod" | "paid";
+  note?: string;
+};
+
+export async function createAdminOrder(accessToken: string, input: CreateAdminOrderInput) {
+  return apiFetch<AdminOrderDetail>("/admin/orders", {
+    method: "POST",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
+// Public endpoint — the same shipping methods customers see at checkout,
+// reused here so a phone/walk-in order picks from the same list.
+export type ShippingMethod = {
+  id: number;
+  name: string;
+  price: number;
+  freeOverAmount: number | null;
+};
+
+export async function getShippingMethods() {
+  return apiFetch<ShippingMethod[]>("/shipping-methods");
+}
+
 // ---- Coupons ----
 
 export type Coupon = {

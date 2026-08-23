@@ -103,7 +103,7 @@ export default function HomeScreen() {
 
         {/* Featured products */}
         <View className="py-10">
-          <SectionHeading eyebrow="Feature Items" title="Top Holiday Gift Ideas" />
+          <SectionHeading eyebrow="Feature Items" title="Top Picks for You" />
 
           {featured === null ? (
             <ActivityIndicator color={colors.primary} className="mt-10" />

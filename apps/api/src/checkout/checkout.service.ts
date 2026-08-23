@@ -6,7 +6,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource, EntityManager, QueryFailedError } from 'typeorm';
+import { DataSource, EntityManager, In, QueryFailedError } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -24,7 +24,9 @@ import { OrderItem } from '../orders/entities/order-item.entity';
 import { OrderStatusHistory } from '../orders/entities/order-status-history.entity';
 import { Product } from '../products/entities/product.entity';
 import { MailService } from '../mail/mail.service';
+import { UsersService } from '../users/users.service';
 import { CheckoutDto } from './dto/checkout.dto';
+import { AddressDto } from './dto/address.dto';
 
 export type CheckoutResult = {
   orderNumber: string;
@@ -33,6 +35,19 @@ export type CheckoutResult = {
   currency: string;
   devMode: boolean;
   paymentMethod: 'card' | 'cod';
+};
+
+// Structurally matches admin/orders/dto/create-admin-order.dto.ts —
+// defined here instead of importing that DTO so this module doesn't
+// depend on the admin layer; the admin controller just passes its
+// validated dto straight through, which satisfies this by shape.
+export type ManualOrderInput = {
+  email: string;
+  shippingAddress: AddressDto;
+  items: { productId: number; quantity: number }[];
+  shippingMethodId: number;
+  paymentMethod: 'cod' | 'paid';
+  note?: string;
 };
 
 function toOrderAddress(input: CheckoutDto['shippingAddress']): OrderAddress {
@@ -66,11 +81,14 @@ export class CheckoutService {
     private readonly couponsService: CouponsService,
     private readonly paymentsService: PaymentsService,
     private readonly mailService: MailService,
+    private readonly usersService: UsersService,
     private readonly config: ConfigService,
     @InjectRepository(Payment)
     private readonly paymentRepository: Repository<Payment>,
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
   ) {}
 
   /** MySQL's deadlock detector guarantees it only ever kills one side of a
@@ -349,6 +367,134 @@ export class CheckoutService {
       devMode: this.paymentsService.isDevMode,
       paymentMethod: 'card',
     };
+  }
+
+  /**
+   * Creates an order on a customer's behalf from the admin panel — a phone
+   * order, a walk-in sale, anything entered by staff rather than placed
+   * through the storefront. There's no cart and no Stripe: payment is
+   * either 'cod' (identical to a customer's Cash on Delivery order — stays
+   * pending_payment until cash is collected, same as today) or 'paid' (the
+   * admin is confirming money already changed hands some other way — cash
+   * in person, bank transfer, UPI — so the order starts life already paid).
+   * Reuses the same deadlock-safe stock reservation as a real checkout so
+   * an admin-entered order can't oversell a product any more than a
+   * storefront one can.
+   */
+  async createManualOrder(input: ManualOrderInput): Promise<Order> {
+    const productIds = input.items.map((item) => item.productId);
+    const products = await this.productRepository.find({
+      where: { id: In(productIds), isActive: true },
+      relations: ['images', 'images.asset'],
+    });
+    const productsById = new Map(products.map((p) => [p.id, p]));
+
+    for (const item of input.items) {
+      const product = productsById.get(item.productId);
+      if (!product) {
+        throw new BadRequestException(`Product ${item.productId} not found`);
+      }
+      if (item.quantity > product.stockQty) {
+        throw new BadRequestException(
+          `${product.name} only has ${product.stockQty} left in stock`,
+        );
+      }
+    }
+
+    const shippingMethod = await this.shippingService.findById(
+      input.shippingMethodId,
+    );
+
+    const subtotal = input.items.reduce((sum, item) => {
+      const product = productsById.get(item.productId)!;
+      const price = Number(product.salePrice ?? product.price);
+      return sum + price * item.quantity;
+    }, 0);
+    const shippingTotal = this.shippingService.costFor(
+      shippingMethod,
+      subtotal,
+    );
+    const total = Math.round((subtotal + shippingTotal) * 100) / 100;
+    const currency = 'inr';
+    const shippingAddress = toOrderAddress(input.shippingAddress);
+    const user = await this.usersService.findByEmail(input.email);
+    const isPaid = input.paymentMethod === 'paid';
+
+    const order = await this.runWithDeadlockRetry(async (manager) => {
+      const created = manager.create(Order, {
+        orderNumber: generateOrderNumber(),
+        userId: user?.id ?? null,
+        email: input.email,
+        status: isPaid ? OrderStatus.PAID : OrderStatus.PENDING_PAYMENT,
+        subtotal: subtotal.toFixed(2),
+        shippingTotal: shippingTotal.toFixed(2),
+        taxTotal: '0.00',
+        discountTotal: '0.00',
+        total: total.toFixed(2),
+        currency,
+        shippingAddress,
+        billingAddress: shippingAddress,
+        shippingMethodName: shippingMethod.name,
+        placedAt: new Date(),
+      });
+      const savedOrder = await manager.save(Order, created);
+
+      const orderItems = input.items.map((item) => {
+        const product = productsById.get(item.productId)!;
+        return manager.create(OrderItem, {
+          orderId: savedOrder.id,
+          productId: product.id,
+          productName: product.name,
+          productSlug: product.slug,
+          sku: product.sku,
+          productImage: product.images?.[0]?.asset?.url ?? null,
+          unitPrice: (product.salePrice ?? product.price).toString(),
+          quantity: item.quantity,
+          lineTotal: (
+            Number(product.salePrice ?? product.price) * item.quantity
+          ).toFixed(2),
+        });
+      });
+
+      await this.decrementStock(manager, orderItems);
+      await manager.save(OrderItem, orderItems);
+
+      await manager.save(
+        OrderStatusHistory,
+        manager.create(OrderStatusHistory, {
+          orderId: savedOrder.id,
+          fromStatus: null,
+          toStatus: created.status,
+          note: input.note
+            ? `Created by admin — ${input.note}`
+            : 'Order created by admin',
+        }),
+      );
+
+      await manager.save(
+        Payment,
+        manager.create(Payment, {
+          orderId: savedOrder.id,
+          provider: isPaid ? 'manual' : 'cod',
+          providerRef: `${isPaid ? 'manual' : 'cod'}_${savedOrder.orderNumber}`,
+          amount: total.toFixed(2),
+          status: isPaid
+            ? PaymentStatus.SUCCEEDED
+            : PaymentStatus.REQUIRES_PAYMENT,
+        }),
+      );
+
+      return savedOrder;
+    });
+
+    await this.mailService.sendOrderConfirmation({
+      to: order.email,
+      orderNumber: order.orderNumber,
+      total,
+      currency,
+    });
+
+    return order;
   }
 
   /**

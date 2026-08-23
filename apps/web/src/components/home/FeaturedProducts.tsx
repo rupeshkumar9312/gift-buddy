@@ -8,7 +8,7 @@ export async function FeaturedProducts() {
 
   return (
     <section className="container-page py-16">
-      <SectionHeading eyebrow="Feature Items" title="Top Holiday Gift Ideas" />
+      <SectionHeading eyebrow="Feature Items" title="Top Picks for You" />
       <div className="mt-10 grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
         {featuredProducts.map((product) => (
           <ProductCard key={product.slug} product={product} />

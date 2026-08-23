@@ -12,8 +12,10 @@ import { OrderStatusHistory } from '../../orders/entities/order-status-history.e
 import { Product } from '../../products/entities/product.entity';
 import { Payment, PaymentStatus } from '../../payments/entities/payment.entity';
 import { MailService } from '../../mail/mail.service';
+import { CheckoutService } from '../../checkout/checkout.service';
 import { AdminOrderQueryDto } from './dto/admin-order-query.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { CreateAdminOrderDto } from './dto/create-admin-order.dto';
 import {
   AdminOrderDetail,
   AdminOrderSummary,
@@ -36,7 +38,13 @@ export class AdminOrdersService {
     @InjectRepository(Payment)
     private readonly paymentRepository: Repository<Payment>,
     private readonly mailService: MailService,
+    private readonly checkoutService: CheckoutService,
   ) {}
+
+  async createOrder(dto: CreateAdminOrderDto): Promise<AdminOrderDetail> {
+    const order = await this.checkoutService.createManualOrder(dto);
+    return this.findOne(order.id);
+  }
 
   async findAll(
     query: AdminOrderQueryDto,

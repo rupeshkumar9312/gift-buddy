@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import { getOrders, type AdminOrderSummary, type Paginated } from "@/lib/api";
 import { formatDate, formatMoney, STATUS_LABEL } from "@/lib/format";
@@ -20,7 +21,7 @@ const STATUS_TABS = [
 ];
 
 export default function OrdersPage() {
-  const { accessToken } = useAdminAuth();
+  const { accessToken, hasPermission } = useAdminAuth();
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<Paginated<AdminOrderSummary> | null>(null);
@@ -34,9 +35,20 @@ export default function OrdersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Orders</h1>
-        <p className="mt-1 text-sm text-muted">{result?.meta.total ?? 0} orders.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Orders</h1>
+          <p className="mt-1 text-sm text-muted">{result?.meta.total ?? 0} orders.</p>
+        </div>
+        {hasPermission("orders.write") && (
+          <Link
+            href="/orders/new"
+            className="flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-primary-dark"
+          >
+            <Plus size={15} />
+            New Order
+          </Link>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">

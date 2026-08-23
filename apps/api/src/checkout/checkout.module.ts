@@ -5,6 +5,7 @@ import { ShippingModule } from '../shipping/shipping.module';
 import { CouponsModule } from '../coupons/coupons.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { MailModule } from '../mail/mail.module';
+import { UsersModule } from '../users/users.module';
 import { Order } from '../orders/entities/order.entity';
 import { OrderItem } from '../orders/entities/order-item.entity';
 import { OrderStatusHistory } from '../orders/entities/order-status-history.entity';
@@ -28,8 +29,10 @@ import { CheckoutCleanupService } from './checkout-cleanup.service';
     CouponsModule,
     PaymentsModule,
     MailModule,
+    UsersModule,
   ],
   controllers: [CheckoutController],
   providers: [CheckoutService, CheckoutCleanupService],
+  exports: [CheckoutService],
 })
 export class CheckoutModule {}

@@ -15,6 +15,7 @@ import { RequirePermissions } from '../auth/decorators/require-permissions.decor
 import { AdminOrdersService } from './admin-orders.service';
 import { AdminOrderQueryDto } from './dto/admin-order-query.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { CreateAdminOrderDto } from './dto/create-admin-order.dto';
 
 @Controller('admin/orders')
 @UseGuards(AdminJwtAccessGuard, PermissionsGuard)
@@ -31,6 +32,12 @@ export class AdminOrdersController {
   @RequirePermissions('orders.read')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.adminOrdersService.findOne(id);
+  }
+
+  @Post()
+  @RequirePermissions('orders.write')
+  create(@Body() dto: CreateAdminOrderDto) {
+    return this.adminOrdersService.createOrder(dto);
   }
 
   @Patch(':id/status')
