@@ -56,7 +56,7 @@ export class AuthController {
         cookies?.[CART_COOKIE],
         this.requestContext(req),
       );
-    this.setRefreshCookie(res, refreshToken);
+    this.setRefreshCookie(req, res, refreshToken);
     if (cookies?.[CART_COOKIE]) {
       res.clearCookie(CART_COOKIE, { path: CART_COOKIE_PATH });
     }
@@ -77,7 +77,7 @@ export class AuthController {
         cookies?.[CART_COOKIE],
         this.requestContext(req),
       );
-    this.setRefreshCookie(res, refreshToken);
+    this.setRefreshCookie(req, res, refreshToken);
     if (cookies?.[CART_COOKIE]) {
       res.clearCookie(CART_COOKIE, { path: CART_COOKIE_PATH });
     }
@@ -98,7 +98,7 @@ export class AuthController {
         cookies?.[CART_COOKIE],
         this.requestContext(req),
       );
-    this.setRefreshCookie(res, refreshToken);
+    this.setRefreshCookie(req, res, refreshToken);
     if (cookies?.[CART_COOKIE]) {
       res.clearCookie(CART_COOKIE, { path: CART_COOKIE_PATH });
     }
@@ -132,7 +132,7 @@ export class AuthController {
         cookies?.[CART_COOKIE],
         this.requestContext(req),
       );
-    this.setRefreshCookie(res, refreshToken);
+    this.setRefreshCookie(req, res, refreshToken);
     if (cookies?.[CART_COOKIE]) {
       res.clearCookie(CART_COOKIE, { path: CART_COOKIE_PATH });
     }
@@ -149,7 +149,7 @@ export class AuthController {
     const { user, accessToken, refreshToken } = await this.authService.refresh(
       cookies?.[REFRESH_COOKIE],
     );
-    this.setRefreshCookie(res, refreshToken);
+    this.setRefreshCookie(req, res, refreshToken);
     return { user, accessToken };
   }
 
@@ -191,19 +191,28 @@ export class AuthController {
     };
   }
 
-  private setRefreshCookie(res: Response, refreshToken: string) {
+  private setRefreshCookie(req: Request, res: Response, refreshToken: string) {
     // The web frontend and this API commonly live on different sites (e.g. a
     // local dev frontend calling the deployed Render API, or a Vercel
     // frontend calling a Render API) — `SameSite=Lax` cookies are never sent
     // back on cross-site fetch/XHR calls, only on top-level navigations, so
     // the session would silently fail to persist. `SameSite=None` is
     // required for that cross-site case and itself requires `Secure`, which
-    // only works over HTTPS — hence this only flips in production.
-    const isProduction = this.config.get<string>('nodeEnv') === 'production';
+    // only works over HTTPS.
+    //
+    // This used to key off NODE_ENV === 'production', but that's only ever
+    // as reliable as whoever configured the deploy remembering to set it —
+    // Render doesn't inject it automatically for every service type, and it
+    // silently wasn't set here, so every session kept dying on refresh
+    // no matter how many times the "fix" got redeployed. `req.secure`
+    // reflects reality directly: with `trust proxy` enabled (main.ts), it
+    // reads the `X-Forwarded-Proto` header Render/Cloudflare actually set
+    // for this specific request, so it's correct regardless of any env var.
+    const isHttps = req.secure;
     res.cookie(REFRESH_COOKIE, refreshToken, {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      secure: isHttps,
+      sameSite: isHttps ? 'none' : 'lax',
       path: REFRESH_COOKIE_PATH,
       maxAge: this.config.getOrThrow<number>('jwt.refreshTtlMs'),
     });

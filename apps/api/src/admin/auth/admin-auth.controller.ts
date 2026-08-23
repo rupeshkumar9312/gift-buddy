@@ -49,7 +49,7 @@ export class AdminAuthController {
         ipAddress: getClientIp(req),
         userAgent: req.headers['user-agent'] ?? null,
       });
-    this.setRefreshCookie(res, refreshToken);
+    this.setRefreshCookie(req, res, refreshToken);
     return { admin, accessToken, loginActivityId };
   }
 
@@ -62,7 +62,7 @@ export class AdminAuthController {
     const cookies = req.cookies as Record<string, string | undefined>;
     const { admin, accessToken, refreshToken } =
       await this.adminAuthService.refresh(cookies?.[REFRESH_COOKIE]);
-    this.setRefreshCookie(res, refreshToken);
+    this.setRefreshCookie(req, res, refreshToken);
     return { admin, accessToken };
   }
 
@@ -103,16 +103,18 @@ export class AdminAuthController {
     return this.adminAuthService.me(admin.adminId);
   }
 
-  private setRefreshCookie(res: Response, refreshToken: string) {
-    // See the matching comment in auth.controller.ts — SameSite=Lax cookies
-    // never round-trip on cross-site fetch calls (a local admin dev server
-    // calling the deployed API, for instance), so this needs None+Secure
-    // whenever the API is served over HTTPS.
-    const isProduction = this.config.get<string>('nodeEnv') === 'production';
+  private setRefreshCookie(req: Request, res: Response, refreshToken: string) {
+    // See the matching comment in auth.controller.ts — this used to key off
+    // NODE_ENV === 'production', which silently never fired because Render
+    // doesn't set that for every service type. req.secure reflects the
+    // X-Forwarded-Proto header Render/Cloudflare actually set for this
+    // request (trust proxy is enabled in main.ts), so it's correct
+    // regardless of any env var.
+    const isHttps = req.secure;
     res.cookie(REFRESH_COOKIE, refreshToken, {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      secure: isHttps,
+      sameSite: isHttps ? 'none' : 'lax',
       path: REFRESH_COOKIE_PATH,
       maxAge: this.config.getOrThrow<number>('adminJwt.refreshTtlMs'),
     });

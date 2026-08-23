@@ -58,7 +58,7 @@ export class CartController {
     const { cart, newGuestToken } =
       await this.cartService.getOrCreateActiveCart(this.identity(user, req));
     if (newGuestToken) {
-      this.setCartCookie(res, newGuestToken);
+      this.setCartCookie(req, res, newGuestToken);
     }
     const updated = await this.cartService.addItem(
       cart,
@@ -149,20 +149,25 @@ export class CartController {
     };
   }
 
-  private setCartCookie(res: Response, guestToken: string) {
+  private setCartCookie(req: Request, res: Response, guestToken: string) {
     // SameSite=Lax cookies are never sent back on cross-site fetch/XHR calls
     // (only top-level navigations) — when the frontend and this API are on
     // different sites (a local dev frontend hitting the deployed Render API,
     // or a Vercel frontend hitting a Render API), the guest token cookie set
     // by the first add-to-cart call would never round-trip on the next one,
     // so every "add" silently started a brand-new guest cart instead of
-    // appending to the existing one. None+Secure fixes that, and only
-    // applies in production since Secure requires HTTPS.
-    const isProduction = this.config.get<string>('nodeEnv') === 'production';
+    // appending to the existing one.
+    //
+    // This used to key off NODE_ENV === 'production', which silently never
+    // fired because Render doesn't set that for every service type.
+    // req.secure reflects the X-Forwarded-Proto header Render/Cloudflare
+    // actually set for this request (trust proxy is enabled in main.ts), so
+    // it's correct regardless of any env var.
+    const isHttps = req.secure;
     res.cookie(CART_COOKIE, guestToken, {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      secure: isHttps,
+      sameSite: isHttps ? 'none' : 'lax',
       path: CART_COOKIE_PATH,
       maxAge: this.config.getOrThrow<number>('cart.cookieTtlMs'),
     });
