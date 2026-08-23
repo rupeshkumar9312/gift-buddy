@@ -16,6 +16,7 @@ export type ProductResponse = {
   sku: string;
   inStock: boolean;
   gallery: string[];
+  returnDays: number | null;
 };
 
 export function toProductResponse(product: Product): ProductResponse {
@@ -40,5 +41,6 @@ export function toProductResponse(product: Product): ProductResponse {
     sku: product.sku,
     inStock: product.inStock,
     gallery,
+    returnDays: product.returnDays,
   };
 }

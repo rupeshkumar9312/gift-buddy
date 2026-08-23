@@ -13,6 +13,7 @@ export type AdminProductSummary = {
   isFeatured: boolean;
   isActive: boolean;
   image: string | null;
+  returnDays: number | null;
 };
 
 export type AdminProductDetail = AdminProductSummary & {
@@ -43,6 +44,7 @@ export function toAdminProductSummary(product: Product): AdminProductSummary {
     isFeatured: product.isFeatured,
     isActive: product.isActive,
     image: primaryImage(product),
+    returnDays: product.returnDays,
   };
 }
 

@@ -157,9 +157,11 @@ export function ProductDetailClient({ product }: { product: Product }) {
             <div className="flex items-center gap-2.5 text-sm text-muted">
               <Truck size={17} className="text-primary" /> Free shipping over {formatMoney(99)}
             </div>
-            <div className="flex items-center gap-2.5 text-sm text-muted">
-              <RefreshCcw size={17} className="text-primary" /> 30-day easy returns
-            </div>
+            {!!product.returnDays && (
+              <div className="flex items-center gap-2.5 text-sm text-muted">
+                <RefreshCcw size={17} className="text-primary" /> {product.returnDays}-day easy returns
+              </div>
+            )}
             <div className="flex items-center gap-2.5 text-sm text-muted">
               <ShieldCheck size={17} className="text-primary" /> Secure checkout
             </div>

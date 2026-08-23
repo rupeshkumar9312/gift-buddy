@@ -97,6 +97,7 @@ export class AdminProductsService {
       stockQty: dto.stockQty,
       isFeatured: dto.isFeatured ?? false,
       isActive: dto.isActive ?? true,
+      returnDays: dto.returnDays ?? 30,
     });
 
     const saved = await this.save(product);
@@ -122,6 +123,7 @@ export class AdminProductsService {
     if (dto.stockQty !== undefined) product.stockQty = dto.stockQty;
     if (dto.isFeatured !== undefined) product.isFeatured = dto.isFeatured;
     if (dto.isActive !== undefined) product.isActive = dto.isActive;
+    if (dto.returnDays !== undefined) product.returnDays = dto.returnDays;
 
     await this.save(product);
     if (dto.images) {

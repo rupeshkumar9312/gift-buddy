@@ -55,6 +55,11 @@ export class CreateProductDto {
   @IsOptional()
   isActive?: boolean = true;
 
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  returnDays?: number | null;
+
   @ValidateNested({ each: true })
   @Type(() => ProductImageInputDto)
   @ArrayMinSize(1)

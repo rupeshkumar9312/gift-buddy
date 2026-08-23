@@ -24,6 +24,8 @@ function toFormState(product?: AdminProductDetail) {
     stockQty: product?.stockQty ?? 0,
     isFeatured: product?.isFeatured ?? false,
     isActive: product?.isActive ?? true,
+    returnsEnabled: product ? (product.returnDays ?? 0) > 0 : true,
+    returnDays: product?.returnDays ?? 30,
   };
 }
 
@@ -82,6 +84,7 @@ export function ProductForm({
         stockQty: form.stockQty,
         isFeatured: form.isFeatured,
         isActive: form.isActive,
+        returnDays: form.returnsEnabled ? Math.max(1, form.returnDays) : null,
         images: validImages.map((img) => ({ url: img.url, altText: img.altText || undefined })),
       });
     } catch (err) {
@@ -299,6 +302,36 @@ export function ProductForm({
                 />
                 Featured (Home page gift ideas)
               </label>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-line bg-white p-6">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Returns</h2>
+            <div className="mt-4 flex flex-col gap-3 text-sm">
+              <label className="flex items-center gap-2.5">
+                <input
+                  type="checkbox"
+                  checked={form.returnsEnabled}
+                  onChange={(e) => setForm({ ...form, returnsEnabled: e.target.checked })}
+                  className="h-4 w-4 accent-[#be7374]"
+                />
+                Eligible for returns
+              </label>
+              {form.returnsEnabled && (
+                <Field label="Return window (days)">
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.returnDays}
+                    onChange={(e) => setForm({ ...form, returnDays: Math.max(1, Number(e.target.value)) })}
+                    className={`${inputClass} max-w-[140px]`}
+                  />
+                </Field>
+              )}
+              <p className="text-xs text-muted">
+                Controls the &quot;N-day easy returns&quot; line on this product&apos;s storefront page.
+                Uncheck to hide it entirely for this product.
+              </p>
             </div>
           </section>
         </div>

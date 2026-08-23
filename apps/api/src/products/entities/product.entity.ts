@@ -59,6 +59,11 @@ export class Product {
   @Column({ default: true })
   isActive: boolean;
 
+  // Null/0 = not returnable — storefront hides the "N-day easy returns" line
+  // entirely. Defaults to 30 so existing products are unaffected.
+  @Column({ type: 'int', nullable: true, default: 30 })
+  returnDays: number | null;
+
   @OneToMany(() => ProductImage, (image) => image.product, { cascade: true })
   images: ProductImage[];
 

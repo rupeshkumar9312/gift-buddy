@@ -21,6 +21,7 @@ export type Product = {
   sku: string;
   inStock: boolean;
   gallery: string[];
+  returnDays?: number | null;
 };
 
 export type BlogPost = {

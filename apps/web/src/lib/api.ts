@@ -25,6 +25,7 @@ type ApiProduct = {
   sku: string;
   inStock: boolean;
   gallery: string[];
+  returnDays: number | null;
 };
 
 type Paginated<T> = {
@@ -93,6 +94,7 @@ function toProduct(product: ApiProduct): Product {
     sku: product.sku,
     inStock: product.inStock,
     gallery: product.gallery,
+    returnDays: product.returnDays,
   };
 }
 
