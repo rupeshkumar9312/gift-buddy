@@ -328,6 +328,7 @@ export type OrderSummary = {
 };
 
 export type OrderItemDetail = {
+  orderItemId: number;
   productName: string;
   productSlug: string | null;
   productImage: string | null;
@@ -335,6 +336,9 @@ export type OrderItemDetail = {
   unitPrice: number;
   quantity: number;
   lineTotal: number;
+  returnEligible: boolean;
+  returnWindowEndsAt: string | null;
+  returnRequestStatus: "requested" | "approved" | "rejected" | null;
 };
 
 export type OrderStatusEvent = {
@@ -385,6 +389,19 @@ export async function cancelOrder(
     method: "POST",
     headers: authHeader(options.accessToken),
     body: JSON.stringify({ email: options.email }),
+  });
+}
+
+export async function requestOrderItemReturn(
+  orderNumber: string,
+  orderItemId: number,
+  input: { reason: string; quantity?: number },
+  options: { accessToken?: string; email?: string }
+): Promise<OrderDetail> {
+  return apiFetch<OrderDetail>(`/orders/${orderNumber}/items/${orderItemId}/return-request`, {
+    method: "POST",
+    headers: authHeader(options.accessToken),
+    body: JSON.stringify({ ...input, email: options.email }),
   });
 }
 

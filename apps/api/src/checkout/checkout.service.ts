@@ -283,6 +283,7 @@ export class CheckoutService {
           lineTotal: (
             Number(item.product.salePrice ?? item.product.price) * item.quantity
           ).toFixed(2),
+          returnDays: item.product.returnDays,
         }),
       );
 
@@ -471,6 +472,7 @@ export class CheckoutService {
           lineTotal: (
             Number(product.salePrice ?? product.price) * item.quantity
           ).toFixed(2),
+          returnDays: product.returnDays,
         });
       });
 

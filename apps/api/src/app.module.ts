@@ -46,6 +46,7 @@ import { AdminPromoBannersModule } from './admin/promo-banners/admin-promo-banne
 import { AdminSaleBannersModule } from './admin/sale-banners/admin-sale-banners.module';
 import { AdminGiftKitsModule } from './admin/gift-kits/admin-gift-kits.module';
 import { AdminLoginActivityModule } from './admin/login-activity/admin-login-activity.module';
+import { AdminReturnRequestsModule } from './admin/return-requests/admin-return-requests.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -101,6 +102,7 @@ import { AppService } from './app.service';
     AdminSaleBannersModule,
     AdminGiftKitsModule,
     AdminLoginActivityModule,
+    AdminReturnRequestsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

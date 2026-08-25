@@ -3,6 +3,7 @@ import { OrderItem } from '../../orders/entities/order-item.entity';
 import { OrderStatusHistory } from '../../orders/entities/order-status-history.entity';
 import { Payment } from '../../payments/entities/payment.entity';
 import { OrderDetailResponse, toOrderDetail } from '../../orders/orders.mapper';
+import type { ReturnEligibility } from '../../returns/returns.service';
 
 export type AdminOrderSummary = {
   id: number;
@@ -53,9 +54,10 @@ export function toAdminOrderDetail(
   items: OrderItem[],
   statusHistory: OrderStatusHistory[],
   payment: Payment | null,
+  eligibilityByItemId: Map<number, ReturnEligibility>,
 ): AdminOrderDetail {
   return {
-    ...toOrderDetail(order, items, statusHistory),
+    ...toOrderDetail(order, items, statusHistory, eligibilityByItemId),
     id: order.id,
     email: order.email,
     paymentProvider: payment?.provider ?? null,

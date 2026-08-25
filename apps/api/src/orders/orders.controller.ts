@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Body,
   Query,
@@ -16,6 +17,7 @@ import { OptionalJwtAccessGuard } from '../auth/guards/optional-jwt-access.guard
 import { OrdersService } from './orders.service';
 import { TrackOrderDto } from './dto/track-order.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
+import { CreateReturnRequestDto } from './dto/create-return-request.dto';
 
 @Controller('orders')
 export class OrdersController {
@@ -62,6 +64,24 @@ export class OrdersController {
       orderNumber,
       user?.userId ?? null,
       dto.email,
+    );
+  }
+
+  // Optional auth, same reasoning as cancel above — a guest checkout has no
+  // account to authenticate with, so email is the ownership proof instead.
+  @Post(':orderNumber/items/:orderItemId/return-request')
+  @UseGuards(OptionalJwtAccessGuard)
+  requestReturn(
+    @CurrentUser() user: CurrentUserPayload | undefined,
+    @Param('orderNumber') orderNumber: string,
+    @Param('orderItemId', ParseIntPipe) orderItemId: number,
+    @Body() dto: CreateReturnRequestDto,
+  ) {
+    return this.ordersService.requestReturn(
+      orderNumber,
+      orderItemId,
+      user?.userId ?? null,
+      dto,
     );
   }
 }

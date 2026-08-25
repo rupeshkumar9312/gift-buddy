@@ -9,9 +9,14 @@ import { DataSource, Repository } from 'typeorm';
 import { PaginatedResponse } from '../common/dto/paginated-response.dto';
 import { Product } from '../products/entities/product.entity';
 import { MailService } from '../mail/mail.service';
+import {
+  ReturnsService,
+  type ReturnEligibility,
+} from '../returns/returns.service';
 import { Order, OrderStatus } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { OrderStatusHistory } from './entities/order-status-history.entity';
+import { CreateReturnRequestDto } from './dto/create-return-request.dto';
 import {
   OrderDetailResponse,
   OrderSummaryResponse,
@@ -38,6 +43,7 @@ export class OrdersService {
     @InjectRepository(OrderStatusHistory)
     private readonly orderStatusHistoryRepository: Repository<OrderStatusHistory>,
     private readonly mailService: MailService,
+    private readonly returnsService: ReturnsService,
   ) {}
 
   async findForUser(
@@ -166,11 +172,81 @@ export class OrdersService {
     return this.loadDetail(order);
   }
 
+  async requestReturn(
+    orderNumber: string,
+    orderItemId: number,
+    userId: number | null,
+    dto: CreateReturnRequestDto,
+  ): Promise<OrderDetailResponse> {
+    const order = await this.orderRepository.findOne({
+      where: { orderNumber },
+    });
+    if (!order) {
+      throw new NotFoundException(`Order ${orderNumber} not found`);
+    }
+
+    if (userId !== null) {
+      if (order.userId !== userId) {
+        throw new ForbiddenException();
+      }
+    } else if (
+      !dto.email ||
+      order.email.toLowerCase() !== dto.email.toLowerCase()
+    ) {
+      throw new NotFoundException(`Order ${orderNumber} not found`);
+    }
+
+    const item = await this.orderItemRepository.findOne({
+      where: { id: orderItemId, orderId: order.id },
+    });
+    if (!item) {
+      throw new NotFoundException(`Order item ${orderItemId} not found`);
+    }
+
+    const statusHistory = await this.orderStatusHistoryRepository.find({
+      where: { orderId: order.id },
+    });
+
+    await this.returnsService.createRequest({
+      order,
+      item,
+      statusHistory,
+      quantity: dto.quantity ?? item.quantity,
+      reason: dto.reason,
+    });
+
+    await this.mailService.sendReturnRequestUpdate({
+      to: order.email,
+      orderNumber: order.orderNumber,
+      productName: item.productName,
+      status: 'requested',
+    });
+
+    return this.loadDetail(order);
+  }
+
   private async loadDetail(order: Order): Promise<OrderDetailResponse> {
-    const [items, statusHistory] = await Promise.all([
+    const [items, statusHistory, returnRequests] = await Promise.all([
       this.orderItemRepository.find({ where: { orderId: order.id } }),
       this.orderStatusHistoryRepository.find({ where: { orderId: order.id } }),
+      this.returnsService.findForOrder(order.id),
     ]);
-    return toOrderDetail(order, items, statusHistory);
+
+    const requestsByItemId = new Map(
+      returnRequests.map((r) => [r.orderItemId, r]),
+    );
+    const deliveredAt = this.returnsService.deliveredAt(statusHistory);
+    const eligibilityByItemId = new Map<number, ReturnEligibility>(
+      items.map((item) => [
+        item.id,
+        this.returnsService.eligibility(
+          item,
+          deliveredAt,
+          requestsByItemId.get(item.id),
+        ),
+      ]),
+    );
+
+    return toOrderDetail(order, items, statusHistory, eligibilityByItemId);
   }
 }
