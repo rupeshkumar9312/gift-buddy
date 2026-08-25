@@ -7,6 +7,7 @@ import { Product } from '../../products/entities/product.entity';
 import { Payment } from '../../payments/entities/payment.entity';
 import { MailModule } from '../../mail/mail.module';
 import { CheckoutModule } from '../../checkout/checkout.module';
+import { ReturnsModule } from '../../returns/returns.module';
 import { AdminOrdersController } from './admin-orders.controller';
 import { AdminOrdersService } from './admin-orders.service';
 
@@ -21,6 +22,7 @@ import { AdminOrdersService } from './admin-orders.service';
     ]),
     MailModule,
     CheckoutModule,
+    ReturnsModule,
   ],
   controllers: [AdminOrdersController],
   providers: [AdminOrdersService],

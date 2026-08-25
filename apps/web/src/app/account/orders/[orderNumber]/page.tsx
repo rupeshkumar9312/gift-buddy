@@ -6,7 +6,7 @@ import Image from "next/image";
 import { PageBanner } from "@/components/PageBanner";
 import { Spinner } from "@/components/Spinner";
 import { useAuth } from "@/context/AuthContext";
-import { cancelOrder, getOrder, type OrderDetail } from "@/lib/api";
+import { cancelOrder, getOrder, requestOrderItemReturn, type OrderDetail } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -22,6 +22,12 @@ const STATUS_LABEL: Record<string, string> = {
 
 const CANCELLABLE_STATUSES = ["pending_payment", "paid"];
 
+const RETURN_STATUS_LABEL: Record<string, string> = {
+  requested: "Return requested",
+  approved: "Return approved",
+  rejected: "Return rejected",
+};
+
 export default function OrderDetailPage({
   params,
 }: {
@@ -34,6 +40,10 @@ export default function OrderDetailPage({
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [returningItemId, setReturningItemId] = useState<number | null>(null);
+  const [returnReason, setReturnReason] = useState("");
+  const [submittingReturn, setSubmittingReturn] = useState(false);
+  const [returnError, setReturnError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -54,6 +64,27 @@ export default function OrderDetailPage({
       setCancelError(err instanceof Error ? err.message : "Couldn't cancel your order.");
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleRequestReturn = async (orderItemId: number) => {
+    if (!accessToken) return;
+    setSubmittingReturn(true);
+    setReturnError(null);
+    try {
+      const updated = await requestOrderItemReturn(
+        orderNumber,
+        orderItemId,
+        { reason: returnReason },
+        { accessToken }
+      );
+      setOrder(updated);
+      setReturningItemId(null);
+      setReturnReason("");
+    } catch (err) {
+      setReturnError(err instanceof Error ? err.message : "Couldn't submit your return request.");
+    } finally {
+      setSubmittingReturn(false);
     }
   };
 
@@ -127,19 +158,71 @@ export default function OrderDetailPage({
 
                 <ul className="mt-4 flex flex-col gap-4">
                   {order.items.map((item) => (
-                    <li key={item.sku} className="flex items-center gap-4">
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-cream">
-                        {item.productImage && (
-                          <Image src={item.productImage} alt={item.productName} fill className="object-cover" sizes="64px" />
-                        )}
+                    <li key={item.orderItemId} className="flex flex-col gap-3">
+                      <div className="flex items-center gap-4">
+                        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-cream">
+                          {item.productImage && (
+                            <Image src={item.productImage} alt={item.productName} fill className="object-cover" sizes="64px" />
+                          )}
+                        </div>
+                        <div className="flex-1 text-sm">
+                          <p className="font-medium text-ink">{item.productName}</p>
+                          <p className="text-muted">
+                            Qty {item.quantity} · {formatMoney(item.unitPrice)} each
+                          </p>
+                        </div>
+                        <span className="text-sm font-medium text-ink">{formatMoney(item.lineTotal)}</span>
                       </div>
-                      <div className="flex-1 text-sm">
-                        <p className="font-medium text-ink">{item.productName}</p>
-                        <p className="text-muted">
-                          Qty {item.quantity} · {formatMoney(item.unitPrice)} each
-                        </p>
-                      </div>
-                      <span className="text-sm font-medium text-ink">{formatMoney(item.lineTotal)}</span>
+
+                      {item.returnRequestStatus ? (
+                        <span className="w-fit rounded-full bg-cream px-3 py-1 text-xs font-medium uppercase tracking-wide text-muted">
+                          {RETURN_STATUS_LABEL[item.returnRequestStatus] ?? item.returnRequestStatus}
+                        </span>
+                      ) : item.returnEligible ? (
+                        returningItemId === item.orderItemId ? (
+                          <div className="flex flex-col gap-2 rounded-xl border border-line bg-cream/40 p-3">
+                            {returnError && <p className="text-sm text-primary">{returnError}</p>}
+                            <textarea
+                              value={returnReason}
+                              onChange={(e) => setReturnReason(e.target.value)}
+                              placeholder="Why are you returning this item?"
+                              rows={2}
+                              className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none focus:border-primary"
+                            />
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => handleRequestReturn(item.orderItemId)}
+                                disabled={submittingReturn || returnReason.trim().length === 0}
+                                className="flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-xs font-medium uppercase tracking-wide text-white transition hover:bg-primary-dark disabled:opacity-60"
+                              >
+                                {submittingReturn && <Spinner size={13} />}
+                                {submittingReturn ? "Submitting…" : "Submit Request"}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setReturningItemId(null);
+                                  setReturnError(null);
+                                }}
+                                disabled={submittingReturn}
+                                className="text-xs font-medium uppercase tracking-wide text-muted hover:text-ink"
+                              >
+                                Never mind
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setReturningItemId(item.orderItemId);
+                              setReturnReason("");
+                              setReturnError(null);
+                            }}
+                            className="w-fit rounded-full border border-line px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-ink transition hover:border-primary hover:text-primary"
+                          >
+                            Request Return
+                          </button>
+                        )
+                      ) : null}
                     </li>
                   ))}
                 </ul>

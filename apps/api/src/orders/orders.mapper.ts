@@ -1,6 +1,7 @@
 import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { OrderStatusHistory } from './entities/order-status-history.entity';
+import type { ReturnEligibility } from '../returns/returns.service';
 
 export type OrderSummaryResponse = {
   orderNumber: string;
@@ -22,6 +23,7 @@ export type OrderDetailResponse = OrderSummaryResponse & {
   placedAt: Date | null;
   deliveryExtraDays: number | null;
   items: {
+    orderItemId: number;
     productName: string;
     productSlug: string | null;
     productImage: string | null;
@@ -29,6 +31,9 @@ export type OrderDetailResponse = OrderSummaryResponse & {
     unitPrice: number;
     quantity: number;
     lineTotal: number;
+    returnEligible: boolean;
+    returnWindowEndsAt: Date | null;
+    returnRequestStatus: string | null;
   }[];
   statusHistory: {
     fromStatus: string | null;
@@ -56,6 +61,7 @@ export function toOrderDetail(
   order: Order,
   items: OrderItem[],
   statusHistory: OrderStatusHistory[],
+  eligibilityByItemId: Map<number, ReturnEligibility>,
 ): OrderDetailResponse {
   return {
     ...toOrderSummary(
@@ -71,15 +77,22 @@ export function toOrderDetail(
     shippingMethodName: order.shippingMethodName,
     placedAt: order.placedAt,
     deliveryExtraDays: order.deliveryExtraDays,
-    items: items.map((item) => ({
-      productName: item.productName,
-      productSlug: item.productSlug,
-      productImage: item.productImage,
-      sku: item.sku,
-      unitPrice: Number(item.unitPrice),
-      quantity: item.quantity,
-      lineTotal: Number(item.lineTotal),
-    })),
+    items: items.map((item) => {
+      const eligibility = eligibilityByItemId.get(item.id);
+      return {
+        orderItemId: item.id,
+        productName: item.productName,
+        productSlug: item.productSlug,
+        productImage: item.productImage,
+        sku: item.sku,
+        unitPrice: Number(item.unitPrice),
+        quantity: item.quantity,
+        lineTotal: Number(item.lineTotal),
+        returnEligible: eligibility?.eligible ?? false,
+        returnWindowEndsAt: eligibility?.windowEndsAt ?? null,
+        returnRequestStatus: eligibility?.requestStatus ?? null,
+      };
+    }),
     statusHistory: statusHistory
       .slice()
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())

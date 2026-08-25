@@ -642,6 +642,42 @@ export async function deleteOutOfAreaOrder(accessToken: string, id: number) {
   return apiFetch<void>(`/admin/out-of-area-orders/${id}`, { method: "DELETE", accessToken });
 }
 
+// ---- Return requests ----
+
+export type ReturnRequestStatus = "requested" | "approved" | "rejected";
+
+export type AdminReturnRequest = {
+  id: number;
+  orderId: number;
+  orderNumber: string;
+  customerEmail: string;
+  productName: string;
+  sku: string;
+  quantity: number;
+  reason: string;
+  status: ReturnRequestStatus;
+  adminNote: string | null;
+  requestedAt: string;
+  resolvedAt: string | null;
+};
+
+export async function getReturnRequests(accessToken: string, status?: ReturnRequestStatus) {
+  const params = status ? `?status=${status}` : "";
+  return apiFetch<AdminReturnRequest[]>(`/admin/return-requests${params}`, { accessToken });
+}
+
+export async function updateReturnRequest(
+  accessToken: string,
+  id: number,
+  input: { status: "approved" | "rejected"; adminNote?: string }
+) {
+  return apiFetch<AdminReturnRequest>(`/admin/return-requests/${id}`, {
+    method: "PATCH",
+    accessToken,
+    body: JSON.stringify(input),
+  });
+}
+
 // ---- Reviews ----
 
 export type AdminReview = {

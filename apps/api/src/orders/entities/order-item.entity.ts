@@ -52,6 +52,12 @@ export class OrderItem {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   lineTotal: string;
 
+  // Snapshotted from product.returnDays at checkout, same reasoning as the
+  // other fields on this entity — null/0 means not returnable, independent
+  // of whatever the product's setting is later changed to.
+  @Column({ type: 'int', nullable: true })
+  returnDays: number | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

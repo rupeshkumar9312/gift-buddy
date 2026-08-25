@@ -62,6 +62,28 @@ export class MailService {
     }
   }
 
+  async sendReturnRequestUpdate(params: {
+    to: string;
+    orderNumber: string;
+    productName: string;
+    status: string;
+  }): Promise<void> {
+    try {
+      await this.transporter.sendMail({
+        from: this.from,
+        to: params.to,
+        subject: `Return request update for order ${params.orderNumber}`,
+        text: `Your return request for "${params.productName}" on order ${params.orderNumber} is now: ${params.status}.`,
+        html: `<p>Your return request for <strong>${params.productName}</strong> on order <strong>${params.orderNumber}</strong> is now: <strong>${params.status}</strong>.</p>`,
+      });
+    } catch (error) {
+      // Best-effort, same rationale as sendOrderConfirmation above.
+      this.logger.error(
+        `Failed to send return request update email: ${String(error)}`,
+      );
+    }
+  }
+
   async sendContactAck(params: { to: string; name: string }): Promise<void> {
     try {
       await this.transporter.sendMail({

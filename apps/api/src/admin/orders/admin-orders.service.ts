@@ -13,6 +13,10 @@ import { Product } from '../../products/entities/product.entity';
 import { Payment, PaymentStatus } from '../../payments/entities/payment.entity';
 import { MailService } from '../../mail/mail.service';
 import { CheckoutService } from '../../checkout/checkout.service';
+import {
+  ReturnsService,
+  type ReturnEligibility,
+} from '../../returns/returns.service';
 import { AdminOrderQueryDto } from './dto/admin-order-query.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { CreateAdminOrderDto } from './dto/create-admin-order.dto';
@@ -39,6 +43,7 @@ export class AdminOrdersService {
     private readonly paymentRepository: Repository<Payment>,
     private readonly mailService: MailService,
     private readonly checkoutService: CheckoutService,
+    private readonly returnsService: ReturnsService,
   ) {}
 
   async createOrder(dto: CreateAdminOrderDto): Promise<AdminOrderDetail> {
@@ -89,12 +94,34 @@ export class AdminOrdersService {
     if (!order) {
       throw new NotFoundException(`Order ${id} not found`);
     }
-    const [items, statusHistory, payment] = await Promise.all([
+    const [items, statusHistory, payment, returnRequests] = await Promise.all([
       this.orderItemRepository.find({ where: { orderId: id } }),
       this.orderStatusHistoryRepository.find({ where: { orderId: id } }),
       this.paymentRepository.findOne({ where: { orderId: id } }),
+      this.returnsService.findForOrder(id),
     ]);
-    return toAdminOrderDetail(order, items, statusHistory, payment ?? null);
+
+    const requestsByItemId = new Map(
+      returnRequests.map((r) => [r.orderItemId, r]),
+    );
+    const deliveredAt = this.returnsService.deliveredAt(statusHistory);
+    const eligibilityByItemId = new Map<number, ReturnEligibility>(
+      items.map((item) => [
+        item.id,
+        this.returnsService.eligibility(
+          item,
+          deliveredAt,
+          requestsByItemId.get(item.id),
+        ),
+      ]),
+    );
+    return toAdminOrderDetail(
+      order,
+      items,
+      statusHistory,
+      payment ?? null,
+      eligibilityByItemId,
+    );
   }
 
   /** Records that cash was collected on delivery — touches only the Payment
